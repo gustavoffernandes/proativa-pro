@@ -13,6 +13,7 @@ Deno.serve(async (req) => {
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
   const GOOGLE_SHEETS_API_KEY = Deno.env.get("GOOGLE_SHEETS_API_KEY");
 
   if (!GOOGLE_SHEETS_API_KEY) {
@@ -22,7 +23,45 @@ Deno.serve(async (req) => {
     );
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  // ========== AUTH CHECK ==========
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ error: "Não autorizado" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const { data: { user: callerUser }, error: callerError } = await callerClient.auth.getUser();
+  if (callerError || !callerUser) {
+    return new Response(
+      JSON.stringify({ error: "Não autorizado" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // Verify caller is admin
+  const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const { data: roleData } = await adminClient
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", callerUser.id)
+    .eq("role", "admin")
+    .maybeSingle();
+
+  if (!roleData) {
+    return new Response(
+      JSON.stringify({ error: "Acesso negado. Apenas administradores podem sincronizar." }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+  // ========== END AUTH CHECK ==========
+
+  const supabase = adminClient;
 
   try {
     const { config_id } = await req.json();
@@ -64,7 +103,6 @@ Deno.serve(async (req) => {
         .update({ last_sync_at: syncedAt })
         .eq("id", config_id);
 
-      // Update sync log
       if (syncLog) {
         await supabase
           .from("sync_logs")
@@ -93,7 +131,6 @@ Deno.serve(async (req) => {
     const sexCol = findCol(["sexo", "gênero", "genero", "sex", "gender"]);
     const sectorCol = findCol(["setor", "sector", "departamento", "área", "area"]);
 
-    // All other columns are treated as question answers
     const metaCols = new Set([timestampCol, nameCol, ageCol, sexCol, sectorCol].filter((i) => i >= 0));
 
     const responses = dataRows.map((row: string[]) => {
@@ -104,7 +141,6 @@ Deno.serve(async (req) => {
         }
       });
 
-      // Normalize sector and sex values for consistent deduplication
       const rawSector = sectorCol >= 0 ? row[sectorCol] || null : null;
       const normalizedSector = rawSector
         ? rawSector.trim().charAt(0).toUpperCase() + rawSector.trim().slice(1).toLowerCase()
@@ -133,7 +169,6 @@ Deno.serve(async (req) => {
     // Delete existing responses for this config and re-insert
     await supabase.from("survey_responses").delete().eq("config_id", config_id);
 
-    // Insert in batches of 500
     let totalSynced = 0;
     for (let i = 0; i < responses.length; i += 500) {
       const batch = responses.slice(i, i + 500);
@@ -144,13 +179,11 @@ Deno.serve(async (req) => {
 
     const syncedAt = new Date().toISOString();
 
-    // Update config last_sync_at
     await supabase
       .from("google_forms_config")
       .update({ last_sync_at: syncedAt })
       .eq("id", config_id);
 
-    // Update sync log
     if (syncLog) {
       await supabase
         .from("sync_logs")
@@ -158,10 +191,10 @@ Deno.serve(async (req) => {
         .eq("id", syncLog.id);
     }
 
-    // Audit log for sync
+    // Audit log
     try {
       await supabase.from("audit_logs").insert({
-        actor_user_id: null,
+        actor_user_id: callerUser.id,
         action: "sync_google_sheets",
         target_type: "google_forms_config",
         target_id: config_id,
@@ -176,7 +209,6 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("Sync error:", error);
 
-    // Try to log the error
     try {
       await supabase
         .from("sync_logs")
@@ -192,13 +224,11 @@ Deno.serve(async (req) => {
 
 function parseTimestamp(value: string): string | null {
   if (!value) return null;
-  // Try DD/MM/YYYY HH:MM:SS format (Brazilian)
   const brMatch = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):?(\d{2})?/);
   if (brMatch) {
     const [, day, month, year, hour, min, sec] = brMatch;
     return new Date(+year, +month - 1, +day, +hour, +min, +(sec || 0)).toISOString();
   }
-  // Fallback: try native parsing
   const d = new Date(value);
   return isNaN(d.getTime()) ? null : d.toISOString();
 }

@@ -10,9 +10,48 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ========== AUTH: Require secret token or admin JWT ==========
+  const autoSyncSecret = Deno.env.get("AUTO_SYNC_SECRET");
+  const authHeader = req.headers.get("Authorization");
+  const providedToken = req.headers.get("X-Auto-Sync-Token");
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const googleApiKey = Deno.env.get("GOOGLE_SHEETS_API_KEY");
+
+  let isAuthorized = false;
+
+  // Option 1: Secret token for cron jobs
+  if (autoSyncSecret && providedToken === autoSyncSecret) {
+    isAuthorized = true;
+  }
+
+  // Option 2: Admin JWT
+  if (!isAuthorized && authHeader) {
+    const callerClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user } } = await callerClient.auth.getUser();
+    if (user) {
+      const adminCheck = createClient(supabaseUrl, supabaseKey);
+      const { data: roleData } = await adminCheck
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (roleData) isAuthorized = true;
+    }
+  }
+
+  if (!isAuthorized) {
+    return new Response(
+      JSON.stringify({ error: "Não autorizado. Forneça um token válido ou autentique como administrador." }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+  // ========== END AUTH ==========
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
