@@ -499,72 +499,103 @@ export function exportCompanyPDF(companyId: string, data: PDFExportData, formNam
     });
     ay += 4;
 
-    let planNum = 1;
+    // Group plans by form (company_config_id)
+    const formConfigsMap = new Map<string, string>();
+    (data.formConfigs || []).forEach(fc => formConfigsMap.set(fc.configId, fc.title));
+
+    const plansByForm = new Map<string, typeof realPlans>();
     realPlans.forEach(plan => {
-      const planTasksList = realTasks.filter(t => t.action_plan_id === plan.id);
-      const factor = ALL_FACTORS.find(f => f.id === plan.factor_id);
+      const key = plan.company_config_id || "__unknown__";
+      if (!plansByForm.has(key)) plansByForm.set(key, []);
+      plansByForm.get(key)!.push(plan);
+    });
 
-      ay = checkPageBreak(doc, ay, 30, company.name, "Plano de Acao (cont.)", pageNum);
+    let planNum = 1;
+    const formGroups = Array.from(plansByForm.entries());
 
-      // Plan header with status color
-      const statusColor = plan.status === "completed" ? COLORS.success : plan.status === "in_progress" ? COLORS.warning : COLORS.muted;
-      doc.setFillColor(...statusColor);
-      doc.rect(MARGIN, ay - 3, 3, 6, "F");
+    formGroups.forEach(([configId, formPlans], groupIdx) => {
+      // Add form name as section divider when there are multiple forms
+      if (formGroups.length > 1) {
+        const formTitle = formConfigsMap.get(configId) || `Formulario ${groupIdx + 1}`;
+        ay = checkPageBreak(doc, ay, 20, company.name, "Plano de Acao (cont.)", pageNum);
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.text(`${planNum}. ${removeDiacritics(plan.title)}`, MARGIN + 6, ay);
-
-      // Status label
-      const statusLabel = plan.status === "completed" ? "Concluido" : plan.status === "in_progress" ? "Em andamento" : "Pendente";
-      doc.setFontSize(7);
-      doc.setTextColor(...statusColor);
-      doc.text(`[${statusLabel}]`, 160, ay);
-      doc.setTextColor(...COLORS.text);
-      ay += 5;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(...COLORS.muted);
-      doc.text(`Fator: ${removeDiacritics(factor?.name || plan.factor_id)} | Nivel: ${plan.risk_level}`, MARGIN + 6, ay);
-      doc.setTextColor(...COLORS.text);
-      ay += 6;
-
-      // Tasks as "O que / Por que / Como / Status" table
-      if (planTasksList.length > 0) {
-        const taskTableData = planTasksList.map(t => [
-          removeDiacritics(t.title),
-          removeDiacritics(t.description || "-"),
-          removeDiacritics(t.observation || "-"),
-          t.is_completed ? "Executada" : "Pendente",
-        ]);
-
-        autoTable(doc, {
-          startY: ay,
-          head: [["O que", "Por que", "Como", "Status"]],
-          body: taskTableData,
-          theme: "grid",
-          headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontSize: 7, fontStyle: "bold" },
-          bodyStyles: { fontSize: 7, textColor: COLORS.text },
-          columnStyles: { 3: { cellWidth: 20, halign: "center" } },
-          alternateRowStyles: { fillColor: COLORS.bg },
-          margin: { left: MARGIN + 4, right: MARGIN },
-          didParseCell: (cellData) => {
-            if (cellData.section === "body" && cellData.column.index === 3) {
-              const val = String(cellData.cell.raw);
-              if (val === "Executada") {
-                cellData.cell.styles.textColor = COLORS.success;
-                cellData.cell.styles.fontStyle = "bold";
-              } else {
-                cellData.cell.styles.textColor = COLORS.warning;
-              }
-            }
-          },
-        });
-        ay = (doc as any).lastAutoTable?.finalY + 6 || ay + 20;
+        // Form name divider
+        doc.setFillColor(...COLORS.accent);
+        doc.rect(MARGIN, ay - 3, CONTENT_WIDTH, 7, "F");
+        doc.setTextColor(...COLORS.white);
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.text(removeDiacritics(formTitle), MARGIN + 4, ay + 1);
+        doc.setTextColor(...COLORS.text);
+        ay += 10;
       }
 
-      planNum++;
+      formPlans.forEach(plan => {
+        const planTasksList = realTasks.filter(t => t.action_plan_id === plan.id);
+        const factor = ALL_FACTORS.find(f => f.id === plan.factor_id);
+
+        ay = checkPageBreak(doc, ay, 30, company.name, "Plano de Acao (cont.)", pageNum);
+
+        // Plan header with status color
+        const statusColor = plan.status === "completed" ? COLORS.success : plan.status === "in_progress" ? COLORS.warning : COLORS.muted;
+        doc.setFillColor(...statusColor);
+        doc.rect(MARGIN, ay - 3, 3, 6, "F");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text(`${planNum}. ${removeDiacritics(plan.title)}`, MARGIN + 6, ay);
+
+        // Status label
+        const statusLabel = plan.status === "completed" ? "Concluido" : plan.status === "in_progress" ? "Em andamento" : "Pendente";
+        doc.setFontSize(7);
+        doc.setTextColor(...statusColor);
+        doc.text(`[${statusLabel}]`, 160, ay);
+        doc.setTextColor(...COLORS.text);
+        ay += 5;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...COLORS.muted);
+        doc.text(`Fator: ${removeDiacritics(factor?.name || plan.factor_id)} | Nivel: ${plan.risk_level}`, MARGIN + 6, ay);
+        doc.setTextColor(...COLORS.text);
+        ay += 6;
+
+        // Tasks as "O que / Por que / Como / Status" table
+        if (planTasksList.length > 0) {
+          const taskTableData = planTasksList.map(t => [
+            removeDiacritics(t.title),
+            removeDiacritics(t.description || "-"),
+            removeDiacritics(t.observation || "-"),
+            t.is_completed ? "Executada" : "Pendente",
+          ]);
+
+          autoTable(doc, {
+            startY: ay,
+            head: [["O que", "Por que", "Como", "Status"]],
+            body: taskTableData,
+            theme: "grid",
+            headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontSize: 7, fontStyle: "bold" },
+            bodyStyles: { fontSize: 7, textColor: COLORS.text },
+            columnStyles: { 3: { cellWidth: 20, halign: "center" } },
+            alternateRowStyles: { fillColor: COLORS.bg },
+            margin: { left: MARGIN + 4, right: MARGIN },
+            didParseCell: (cellData) => {
+              if (cellData.section === "body" && cellData.column.index === 3) {
+                const val = String(cellData.cell.raw);
+                if (val === "Executada") {
+                  cellData.cell.styles.textColor = COLORS.success;
+                  cellData.cell.styles.fontStyle = "bold";
+                } else {
+                  cellData.cell.styles.textColor = COLORS.warning;
+                }
+              }
+            },
+          });
+          ay = (doc as any).lastAutoTable?.finalY + 6 || ay + 20;
+        }
+
+        planNum++;
+      });
     });
   } else {
     // No action plans registered - show informative message
