@@ -10,7 +10,7 @@ import {
   PROART_SCALES, ALL_FACTORS, classifyRisk, getRiskLabel, getRiskColor, getRiskBgColor,
 } from "@/lib/proartMethodology";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from "recharts";
 import { ResponsiveChart, useChartConfig } from "@/components/dashboard/ResponsiveChart";
@@ -29,9 +29,7 @@ export default function CompanyComparison() {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [sectorFilter, setSectorFilter] = useState<string>("");
-  // Multi-select sectors for "Por Setor" mode
   const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
-  // Selected factors filter for "Por Fator" mode
   const [selectedFactors, setSelectedFactors] = useState<string[]>([]);
 
   const chart = useChartConfig();
@@ -42,7 +40,6 @@ export default function CompanyComparison() {
   if (isLoading) return <PageSkeleton />;
   if (!hasData) return <DashboardLayout><div className="flex flex-col items-center justify-center h-64 text-center"><p className="text-sm text-muted-foreground">Nenhum dado disponível.</p></div></DashboardLayout>;
 
-  // Date filter
   const dateFiltered = respondents.filter(r => {
     if (!startDate && !endDate) return true;
     if (!r.responseTimestamp) return false;
@@ -52,7 +49,6 @@ export default function CompanyComparison() {
     return true;
   });
 
-  // Sector filter (global for "Por Empresa")
   const allSectors = uniqueSectors(respondents.map(r => r.sector));
   const filteredByAll = sectorFilter
     ? dateFiltered.filter(r => r.sector.toLowerCase().trim() === sectorFilter.toLowerCase().trim())
@@ -60,7 +56,6 @@ export default function CompanyComparison() {
 
   const selectedCompanies = companies.filter(c => effectiveSelected.includes(c.id));
 
-  // Custom averages that respect date/sector filters
   const getFilteredAverage = (sectionId: string, companyId: string) => {
     const pool = filteredByAll.filter(r => r.companyId === companyId);
     const qs = questions.filter(q => q.section === sectionId);
@@ -73,10 +68,8 @@ export default function CompanyComparison() {
     return Math.round(avg * 100) / 100;
   };
 
-  // Sections to display
   const displaySections = sectionFilter ? availableSections.filter(s => s.id === sectionFilter) : availableSections;
 
-  // Company comparison data
   const data = displaySections.map((s) => {
     const row: Record<string, string | number> = { name: s.shortName };
     selectedCompanies.forEach(c => { row[c.name.split(" ")[0]] = getFilteredAverage(s.id, c.id); });
@@ -89,7 +82,7 @@ export default function CompanyComparison() {
     return row;
   });
 
-  // Sector comparison — with multi-sector filter
+  // Sector comparison
   const effectiveSectorCompany = sectorCompanyId || companies[0]?.id || "";
   const allSectorAvgs = getSectorAverages(effectiveSectorCompany);
   const sectorAvgs = selectedSectors.length > 0
@@ -125,7 +118,7 @@ export default function CompanyComparison() {
     return row;
   }) : [];
 
-  // Factor-level comparison (respect selectedFactors filter)
+  // Factor-level comparison
   const effectiveFactors = selectedFactors.length > 0
     ? ALL_FACTORS.filter(f => selectedFactors.includes(f.id))
     : ALL_FACTORS;
@@ -147,17 +140,17 @@ export default function CompanyComparison() {
   return (
     <DashboardLayout>
       <ErrorBoundary>
-      <div className="animate-fade-in space-y-6">
+      <div className="animate-fade-in space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Comparação</h1>
-          <p className="text-sm text-muted-foreground mt-1">Compare desempenho entre empresas, setores e fatores</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Comparação</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Compare desempenho entre empresas, setores e fatores</p>
         </div>
 
         {/* Mode tabs */}
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => setCompareMode("company")} className={cn("rounded-lg px-4 py-2 text-sm font-medium transition-all", compareMode === "company" ? "bg-primary text-primary-foreground shadow-md" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}>Por Empresa</button>
-          <button onClick={() => setCompareMode("factor")} className={cn("rounded-lg px-4 py-2 text-sm font-medium transition-all", compareMode === "factor" ? "bg-primary text-primary-foreground shadow-md" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}>Por Fator</button>
-          <button onClick={() => setCompareMode("sector")} className={cn("rounded-lg px-4 py-2 text-sm font-medium transition-all", compareMode === "sector" ? "bg-primary text-primary-foreground shadow-md" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}>Por Setor</button>
+          <button onClick={() => setCompareMode("company")} className={cn("rounded-lg px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-all", compareMode === "company" ? "bg-primary text-primary-foreground shadow-md" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}>Por Empresa</button>
+          <button onClick={() => setCompareMode("factor")} className={cn("rounded-lg px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-all", compareMode === "factor" ? "bg-primary text-primary-foreground shadow-md" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}>Por Fator</button>
+          <button onClick={() => setCompareMode("sector")} className={cn("rounded-lg px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-all", compareMode === "sector" ? "bg-primary text-primary-foreground shadow-md" : "bg-secondary text-secondary-foreground hover:bg-secondary/80")}>Por Setor</button>
         </div>
 
         {/* Global filters */}
@@ -191,81 +184,73 @@ export default function CompanyComparison() {
                 );
               })}
             </div>
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-              <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card min-w-0">
-                <h3 className="mb-4 text-sm font-semibold text-card-foreground">Comparação por Pilar</h3>
-                <div className="h-[250px] sm:h-[300px] min-w-0 overflow-hidden">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data} barCategoryGap="20%">
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="name" tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
-                      <YAxis domain={[0, 5]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                      <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {selectedCompanies.map((c, i) => <Bar key={c.id} dataKey={c.name.split(" ")[0]} fill={COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} />)}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2">
+              <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card min-w-0">
+                <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Comparação por Pilar</h3>
+                <ResponsiveChart height={300}>
+                  <BarChart data={data} barCategoryGap="20%">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis domain={[0, 5]} tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                    <Tooltip contentStyle={chart.tooltipStyle} />
+                    <Legend wrapperStyle={{ fontSize: chart.legendFontSize }} />
+                    {selectedCompanies.map((c, i) => <Bar key={c.id} dataKey={c.name.split(" ")[0]} fill={COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} />)}
+                  </BarChart>
+                </ResponsiveChart>
               </div>
-              <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card min-w-0">
-                <h3 className="mb-4 text-sm font-semibold text-card-foreground">Radar Comparativo</h3>
-                <div className="h-[250px] sm:h-[300px] min-w-0 overflow-hidden">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData} cx="50%" cy="50%" outerRadius={chart.radarOuterRadius}>
-                      <PolarGrid stroke="hsl(var(--border))" />
-                      <PolarAngleAxis dataKey="subject" tick={{ fontSize: chart.radarAngleFontSize, fill: "hsl(var(--muted-foreground))" }} />
-                      <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fontSize: 9 }} />
-                      {selectedCompanies.map((c, i) => <Radar key={c.id} name={c.name.split(" ")[0]} dataKey={c.name.split(" ")[0]} stroke={COLORS[i % COLORS.length]} fill={COLORS[i % COLORS.length]} fillOpacity={0.1} strokeWidth={2} />)}
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
+              <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card min-w-0">
+                <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Radar Comparativo</h3>
+                <ResponsiveChart height={300}>
+                  <RadarChart data={radarData} cx="50%" cy="50%" outerRadius={chart.radarOuterRadius}>
+                    <PolarGrid stroke="hsl(var(--border))" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: chart.radarAngleFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fontSize: 9 }} />
+                    {selectedCompanies.map((c, i) => <Radar key={c.id} name={c.name.split(" ")[0]} dataKey={c.name.split(" ")[0]} stroke={COLORS[i % COLORS.length]} fill={COLORS[i % COLORS.length]} fillOpacity={0.1} strokeWidth={2} />)}
+                    <Legend wrapperStyle={{ fontSize: chart.legendFontSize }} />
+                  </RadarChart>
+                </ResponsiveChart>
               </div>
-              <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card min-w-0">
-                <h3 className="mb-4 text-sm font-semibold text-card-foreground">Tendência por Pilar</h3>
-                <div className="h-[250px] sm:h-[300px] min-w-0 overflow-hidden">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                      <YAxis domain={[0, 5]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                      <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {selectedCompanies.map((c, i) => <Line key={c.id} type="monotone" dataKey={c.name.split(" ")[0]} stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={{ r: 4 }} />)}
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+              <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card min-w-0">
+                <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Tendência por Pilar</h3>
+                <ResponsiveChart height={300}>
+                  <LineChart data={data}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis domain={[0, 5]} tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                    <Tooltip contentStyle={chart.tooltipStyle} />
+                    <Legend wrapperStyle={{ fontSize: chart.legendFontSize }} />
+                    {selectedCompanies.map((c, i) => <Line key={c.id} type="monotone" dataKey={c.name.split(" ")[0]} stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={{ r: chart.isMobile ? 2 : 4 }} />)}
+                  </LineChart>
+                </ResponsiveChart>
               </div>
-              <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card min-w-0">
-                <h3 className="mb-3 text-sm font-semibold text-card-foreground">Mesmo Setor entre Empresas</h3>
+              <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card min-w-0">
+                <h3 className="mb-3 text-xs sm:text-sm font-semibold text-card-foreground">Mesmo Setor entre Empresas</h3>
                 <select value={effectiveCrossSector} onChange={e => setCrossSector(e.target.value)} className="rounded-lg border border-border bg-background px-3 py-2 text-sm mb-3 w-full">
                   {allSectors.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
-                <div className="h-[250px] sm:h-[300px] min-w-0 overflow-hidden">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={crossSectorData} barCategoryGap="20%">
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                      <YAxis domain={[0, 5]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                      <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {selectedCompanies.map((c, i) => <Bar key={c.id} dataKey={c.name.split(" ")[0]} fill={COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} />)}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                <ResponsiveChart height={300}>
+                  <BarChart data={crossSectorData} barCategoryGap="20%">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis domain={[0, 5]} tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                    <Tooltip contentStyle={chart.tooltipStyle} />
+                    <Legend wrapperStyle={{ fontSize: chart.legendFontSize }} />
+                    {selectedCompanies.map((c, i) => <Bar key={c.id} dataKey={c.name.split(" ")[0]} fill={COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} />)}
+                  </BarChart>
+                </ResponsiveChart>
               </div>
             </div>
 
             {/* Tabela comparativa detalhada */}
-            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
-              <h3 className="mb-4 text-sm font-semibold text-card-foreground">Tabela Comparativa Detalhada</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+            <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card">
+              <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Tabela Comparativa Detalhada</h3>
+              <div className="overflow-x-auto -mx-3 sm:mx-0">
+                <table className="w-full text-xs sm:text-sm">
                   <thead><tr className="border-b border-border">
-                    <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Empresa</th>
-                    <th className="px-4 py-2 text-center font-semibold text-muted-foreground">Resp.</th>
-                    {displaySections.map(s => <th key={s.id} className="px-4 py-2 text-center font-semibold text-muted-foreground">{s.shortName}</th>)}
-                    <th className="px-4 py-2 text-center font-semibold text-muted-foreground">Média</th>
+                    <th className="px-2 sm:px-4 py-2 text-left font-semibold text-muted-foreground">Empresa</th>
+                    <th className="px-2 sm:px-4 py-2 text-center font-semibold text-muted-foreground">Resp.</th>
+                    {displaySections.map(s => <th key={s.id} className="px-2 sm:px-4 py-2 text-center font-semibold text-muted-foreground">{s.shortName}</th>)}
+                    <th className="px-2 sm:px-4 py-2 text-center font-semibold text-muted-foreground">Média</th>
                   </tr></thead>
                   <tbody>{selectedCompanies.map(c => {
                     const pool = filteredByAll.filter(r => r.companyId === c.id);
@@ -273,10 +258,10 @@ export default function CompanyComparison() {
                     const overall = avgs.length > 0 ? avgs.reduce((a, b) => a + b, 0) / avgs.length : 0;
                     return (
                       <tr key={c.id} className="border-b border-border/50">
-                        <td className="px-4 py-2 font-medium text-foreground">{c.name}</td>
-                        <td className="px-4 py-2 text-center text-muted-foreground">{pool.length}</td>
-                        {avgs.map((v, i) => <td key={i} className="px-4 py-2 text-center"><span className={cn("font-medium", v < 2.3 ? "text-destructive" : v >= 3.7 ? "text-success" : "text-foreground")}>{v.toFixed(2)}</span></td>)}
-                        <td className="px-4 py-2 text-center"><span className="inline-flex items-center justify-center rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">{overall.toFixed(2)}</span></td>
+                        <td className="px-2 sm:px-4 py-2 font-medium text-foreground">{c.name}</td>
+                        <td className="px-2 sm:px-4 py-2 text-center text-muted-foreground">{pool.length}</td>
+                        {avgs.map((v, i) => <td key={i} className="px-2 sm:px-4 py-2 text-center"><span className={cn("font-medium", v < 2.3 ? "text-destructive" : v >= 3.7 ? "text-success" : "text-foreground")}>{v.toFixed(2)}</span></td>)}
+                        <td className="px-2 sm:px-4 py-2 text-center"><span className="inline-flex items-center justify-center rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">{overall.toFixed(2)}</span></td>
                       </tr>
                     );
                   })}</tbody>
@@ -288,7 +273,6 @@ export default function CompanyComparison() {
 
         {compareMode === "factor" && (
           <>
-            {/* Company selector */}
             <div className="flex flex-wrap gap-2">
               {companies.map(c => {
                 const pool = filteredByAll.filter(r => r.companyId === c.id);
@@ -302,8 +286,7 @@ export default function CompanyComparison() {
               })}
             </div>
 
-            {/* Factor checkboxes — 10 fatores PROART */}
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="rounded-xl border border-border bg-card p-3 sm:p-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold text-muted-foreground">Filtrar Fatores PROART</span>
                 {selectedFactors.length > 0 && (
@@ -311,7 +294,7 @@ export default function CompanyComparison() {
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
-                {ALL_FACTORS.map((f, i) => {
+                {ALL_FACTORS.map((f) => {
                   const isSelected = selectedFactors.length === 0 || selectedFactors.includes(f.id);
                   return (
                     <button key={f.id} onClick={() => toggleFactor(f.id)}
@@ -328,60 +311,56 @@ export default function CompanyComparison() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-              <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card min-w-0">
-                <h3 className="mb-4 text-sm font-semibold text-card-foreground">Comparação por Fator (10 Fatores PROART)</h3>
-                <div className="h-[300px] sm:h-[400px] min-w-0 overflow-hidden">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={factorData} barCategoryGap="15%" layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis type="number" domain={[0, 5]} tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
-                      <YAxis dataKey="name" type="category" tick={{ fontSize: chart.isMobile ? 7 : 9, fill: "hsl(var(--muted-foreground))" }} width={chart.isMobile ? 60 : 100} />
-                      <Tooltip contentStyle={chart.tooltipStyle} />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {selectedCompanies.map((c, i) => <Bar key={c.id} dataKey={c.name.split(" ")[0]} fill={COLORS[i % COLORS.length]} radius={[0, 4, 4, 0]} />)}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2">
+              <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card min-w-0">
+                <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Comparação por Fator (10 Fatores PROART)</h3>
+                <ResponsiveChart height={400} mobileHeight={300}>
+                  <BarChart data={factorData} barCategoryGap="15%" layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis type="number" domain={[0, 5]} tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: chart.isMobile ? 7 : 9, fill: "hsl(var(--muted-foreground))" }} width={chart.isMobile ? 55 : 100} />
+                    <Tooltip contentStyle={chart.tooltipStyle} />
+                    <Legend wrapperStyle={{ fontSize: chart.legendFontSize }} />
+                    {selectedCompanies.map((c, i) => <Bar key={c.id} dataKey={c.name.split(" ")[0]} fill={COLORS[i % COLORS.length]} radius={[0, 4, 4, 0]} />)}
+                  </BarChart>
+                </ResponsiveChart>
               </div>
-              <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card min-w-0">
-                <h3 className="mb-4 text-sm font-semibold text-card-foreground">Radar por Fator</h3>
-                <div className="h-[300px] sm:h-[400px] min-w-0 overflow-hidden">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={factorData} cx="50%" cy="50%" outerRadius={chart.radarOuterRadius + 20}>
-                      <PolarGrid stroke="hsl(var(--border))" />
-                      <PolarAngleAxis dataKey="name" tick={{ fontSize: chart.isMobile ? 6 : 8, fill: "hsl(var(--muted-foreground))" }} />
-                      <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fontSize: 8 }} />
-                      {selectedCompanies.map((c, i) => <Radar key={c.id} name={c.name.split(" ")[0]} dataKey={c.name.split(" ")[0]} stroke={COLORS[i % COLORS.length]} fill={COLORS[i % COLORS.length]} fillOpacity={0.1} strokeWidth={2} />)}
-                      <Legend wrapperStyle={{ fontSize: 10 }} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
+              <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card min-w-0">
+                <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Radar por Fator</h3>
+                <ResponsiveChart height={400} mobileHeight={300}>
+                  <RadarChart data={factorData} cx="50%" cy="50%" outerRadius={chart.radarOuterRadius + 20}>
+                    <PolarGrid stroke="hsl(var(--border))" />
+                    <PolarAngleAxis dataKey="name" tick={{ fontSize: chart.isMobile ? 6 : 8, fill: "hsl(var(--muted-foreground))" }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fontSize: 8 }} />
+                    {selectedCompanies.map((c, i) => <Radar key={c.id} name={c.name.split(" ")[0]} dataKey={c.name.split(" ")[0]} stroke={COLORS[i % COLORS.length]} fill={COLORS[i % COLORS.length]} fillOpacity={0.1} strokeWidth={2} />)}
+                    <Legend wrapperStyle={{ fontSize: chart.legendFontSize }} />
+                  </RadarChart>
+                </ResponsiveChart>
               </div>
             </div>
 
             {/* Factor detail table */}
-            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
-              <h3 className="mb-4 text-sm font-semibold text-card-foreground">Detalhamento por Fator</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+            <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card">
+              <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Detalhamento por Fator</h3>
+              <div className="overflow-x-auto -mx-3 sm:mx-0">
+                <table className="w-full text-xs sm:text-sm">
                   <thead><tr className="border-b border-border">
-                    <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Escala</th>
-                    <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Fator</th>
-                    {selectedCompanies.map(c => <th key={c.id} className="px-3 py-2 text-center font-semibold text-muted-foreground">{c.name.split(" ")[0]}</th>)}
+                    <th className="px-2 sm:px-3 py-2 text-left font-semibold text-muted-foreground">Escala</th>
+                    <th className="px-2 sm:px-3 py-2 text-left font-semibold text-muted-foreground">Fator</th>
+                    {selectedCompanies.map(c => <th key={c.id} className="px-2 sm:px-3 py-2 text-center font-semibold text-muted-foreground">{c.name.split(" ")[0]}</th>)}
                   </tr></thead>
                   <tbody>{effectiveFactors.map(f => {
                     const scale = PROART_SCALES.find(s => s.id === f.scaleId);
                     return (
                       <tr key={f.id} className="border-b border-border/50">
-                        <td className="px-3 py-2 text-xs text-muted-foreground">{scale?.shortName}</td>
-                        <td className="px-3 py-2 text-xs font-medium text-foreground">{f.name}</td>
+                        <td className="px-2 sm:px-3 py-2 text-xs text-muted-foreground">{scale?.shortName}</td>
+                        <td className="px-2 sm:px-3 py-2 text-xs font-medium text-foreground">{f.name}</td>
                         {selectedCompanies.map(c => {
                           const pool = filteredByAll.filter(r => r.companyId === c.id);
                           const answers = pool.flatMap(r => f.questionIds.map(qId => r.answers[qId]).filter(v => v !== undefined));
                           const avg = answers.length > 0 ? answers.reduce((a, b) => a + b, 0) / answers.length : 0;
                           const risk = classifyRisk(avg, f.type);
-                          return <td key={c.id} className="px-3 py-2 text-center">
+                          return <td key={c.id} className="px-2 sm:px-3 py-2 text-center">
                             <span className={cn("font-medium text-xs", getRiskColor(risk))}>{avg.toFixed(2)}</span>
                           </td>;
                         })}
@@ -406,9 +385,8 @@ export default function CompanyComparison() {
               </select>
             </div>
 
-            {/* Multi-select sector checkboxes */}
             {allSectorAvgs.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-4">
+              <div className="rounded-xl border border-border bg-card p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-semibold text-muted-foreground">Filtrar Setores</span>
                   {selectedSectors.length > 0 && (
@@ -416,7 +394,7 @@ export default function CompanyComparison() {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {allSectorAvgs.map((sa, i) => {
+                  {allSectorAvgs.map((sa) => {
                     const isSelected = selectedSectors.length === 0 || selectedSectors.includes(sa.sector);
                     return (
                       <button key={sa.sector} onClick={() => toggleSector(sa.sector)}
@@ -434,49 +412,45 @@ export default function CompanyComparison() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-              <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card min-w-0">
-                <h3 className="mb-4 text-sm font-semibold text-card-foreground">Setores por Pilar</h3>
-                <div className="h-[250px] sm:h-[300px] min-w-0 overflow-hidden">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={sectorChartData} barCategoryGap="15%">
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                      <YAxis domain={[0, 5]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                      <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                      <Legend wrapperStyle={{ fontSize: 10 }} />
-                      {sectorAvgs.map((sa, i) => <Bar key={sa.sector} dataKey={sa.sector.substring(0, 8)} fill={COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} />)}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2">
+              <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card min-w-0">
+                <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Setores por Pilar</h3>
+                <ResponsiveChart height={300}>
+                  <BarChart data={sectorChartData} barCategoryGap="15%">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis domain={[0, 5]} tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                    <Tooltip contentStyle={chart.tooltipStyle} />
+                    <Legend wrapperStyle={{ fontSize: chart.legendFontSize }} />
+                    {sectorAvgs.map((sa, i) => <Bar key={sa.sector} dataKey={sa.sector.substring(0, 8)} fill={COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} />)}
+                  </BarChart>
+                </ResponsiveChart>
               </div>
-              <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card min-w-0">
-                <h3 className="mb-4 text-sm font-semibold text-card-foreground">Radar por Setor</h3>
-                <div className="h-[250px] sm:h-[300px] min-w-0 overflow-hidden">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={sectorChartData.map(d => ({ ...d, subject: d.name }))} cx="50%" cy="50%" outerRadius={chart.radarOuterRadius}>
-                      <PolarGrid stroke="hsl(var(--border))" />
-                      <PolarAngleAxis dataKey="subject" tick={{ fontSize: chart.radarAngleFontSize, fill: "hsl(var(--muted-foreground))" }} />
-                      <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fontSize: 9 }} />
-                      {sectorAvgs.map((sa, i) => <Radar key={sa.sector} name={sa.sector} dataKey={sa.sector.substring(0, 8)} stroke={COLORS[i % COLORS.length]} fill={COLORS[i % COLORS.length]} fillOpacity={0.1} strokeWidth={2} />)}
-                      <Legend wrapperStyle={{ fontSize: 10 }} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
+              <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card min-w-0">
+                <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Radar por Setor</h3>
+                <ResponsiveChart height={300}>
+                  <RadarChart data={sectorChartData.map(d => ({ ...d, subject: d.name }))} cx="50%" cy="50%" outerRadius={chart.radarOuterRadius}>
+                    <PolarGrid stroke="hsl(var(--border))" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: chart.radarAngleFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fontSize: 9 }} />
+                    {sectorAvgs.map((sa, i) => <Radar key={sa.sector} name={sa.sector} dataKey={sa.sector.substring(0, 8)} stroke={COLORS[i % COLORS.length]} fill={COLORS[i % COLORS.length]} fillOpacity={0.1} strokeWidth={2} />)}
+                    <Legend wrapperStyle={{ fontSize: chart.legendFontSize }} />
+                  </RadarChart>
+                </ResponsiveChart>
               </div>
             </div>
-            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
-              <h3 className="mb-4 text-sm font-semibold text-card-foreground">Detalhamento por Setor</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead><tr className="border-b border-border"><th className="px-4 py-2 text-left font-semibold text-muted-foreground">Setor</th><th className="px-4 py-2 text-center font-semibold text-muted-foreground">Resp.</th>{displaySections.map(s => <th key={s.id} className="px-4 py-2 text-center font-semibold text-muted-foreground">{s.shortName}</th>)}</tr></thead>
+            <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card">
+              <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Detalhamento por Setor</h3>
+              <div className="overflow-x-auto -mx-3 sm:mx-0">
+                <table className="w-full text-xs sm:text-sm">
+                  <thead><tr className="border-b border-border"><th className="px-2 sm:px-4 py-2 text-left font-semibold text-muted-foreground">Setor</th><th className="px-2 sm:px-4 py-2 text-center font-semibold text-muted-foreground">Resp.</th>{displaySections.map(s => <th key={s.id} className="px-2 sm:px-4 py-2 text-center font-semibold text-muted-foreground">{s.shortName}</th>)}</tr></thead>
                   <tbody>{sectorAvgs.map(sa => (
                     <tr key={sa.sector} className="border-b border-border/50">
-                      <td className="px-4 py-2 font-medium text-foreground">{sa.sector}</td>
-                      <td className="px-4 py-2 text-center text-muted-foreground">{sa.count}</td>
+                      <td className="px-2 sm:px-4 py-2 font-medium text-foreground">{sa.sector}</td>
+                      <td className="px-2 sm:px-4 py-2 text-center text-muted-foreground">{sa.count}</td>
                       {displaySections.map(s => {
                         const val = sa.sectionAvgs[s.id] || 0;
-                        return <td key={s.id} className="px-4 py-2 text-center"><span className={cn("font-medium", val < 2.3 ? "text-destructive" : val >= 3.7 ? "text-success" : "text-foreground")}>{val.toFixed(2)}</span></td>;
+                        return <td key={s.id} className="px-2 sm:px-4 py-2 text-center"><span className={cn("font-medium", val < 2.3 ? "text-destructive" : val >= 3.7 ? "text-success" : "text-foreground")}>{val.toFixed(2)}</span></td>;
                       })}
                     </tr>
                   ))}</tbody>
