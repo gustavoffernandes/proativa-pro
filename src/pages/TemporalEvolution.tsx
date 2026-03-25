@@ -4,9 +4,7 @@ import { ResponsiveChart, useChartConfig } from "@/components/dashboard/Responsi
 import { useSurveyData } from "@/hooks/useSurveyData";
 import { useAuth } from "@/contexts/AuthContext";
 import { questions } from "@/data/mockData";
-import {
-  PROART_SCALES, ALL_FACTORS, classifyRisk, getRiskLabel, getRiskColor, getRiskBgColor,
-} from "@/lib/proartMethodology";
+import { ALL_FACTORS } from "@/lib/proartMethodology";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   BarChart, Bar,
@@ -19,7 +17,7 @@ const COLORS = ["hsl(217, 71%, 45%)", "hsl(170, 60%, 45%)", "hsl(38, 92%, 55%)",
 
 export default function TemporalEvolution() {
   const { isCompanyUser } = useAuth();
-  const { isLoading, hasData, companies, respondents, getAvailableSections } = useSurveyData();
+  const { isLoading, hasData, companies, respondents, formConfigs, getAvailableSections, getFormConfigsForCompany } = useSurveyData();
   const [selectedCompany, setSelectedCompany] = useState<string>("");
   const availableSections = getAvailableSections();
   const chart = useChartConfig();
@@ -29,71 +27,88 @@ export default function TemporalEvolution() {
 
   const effectiveCompany = isCompanyUser && companies.length === 1 ? companies[0].id : (selectedCompany || companies[0]?.id || "");
   const company = companies.find(c => c.id === effectiveCompany);
-  const companyRespondents = respondents.filter(r => r.companyId === effectiveCompany);
+  const companyForms = getFormConfigsForCompany(effectiveCompany);
 
-  const monthGroups: Record<string, typeof respondents> = {};
-  companyRespondents.forEach(r => {
-    if (!r.responseTimestamp) return;
-    const d = new Date(r.responseTimestamp);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    if (!monthGroups[key]) monthGroups[key] = [];
-    monthGroups[key].push(r);
+  // Group respondents by form (configId)
+  const formGroups: Record<string, { title: string; respondents: typeof respondents }> = {};
+  companyForms.forEach(f => {
+    const formRespondents = respondents.filter(r => r.configId === f.configId);
+    if (formRespondents.length > 0) {
+      formGroups[f.configId] = { title: f.title, respondents: formRespondents };
+    }
   });
 
-  const sortedMonths = Object.keys(monthGroups).sort();
-  const hasMultiplePeriods = sortedMonths.length >= 2;
+  const formEntries = Object.entries(formGroups);
+  const hasMultipleForms = formEntries.length >= 2;
 
-  const evolutionBySection = sortedMonths.map(month => {
-    const pool = monthGroups[month];
-    const row: Record<string, string | number> = { period: month };
+  // Compute averages per section for each form
+  const formSectionData = formEntries.map(([configId, { title, respondents: pool }]) => {
+    const sectionAvgs: Record<string, number> = {};
     availableSections.forEach(s => {
       const qs = questions.filter(q => q.section === s.id);
       const qsWithData = qs.filter(q => pool.some(r => r.answers[q.id] !== undefined));
-      if (qsWithData.length === 0) { row[s.shortName] = 0; return; }
+      if (qsWithData.length === 0) { sectionAvgs[s.shortName] = 0; return; }
       const avg = qsWithData.reduce((acc, q) => {
         const withAns = pool.filter(r => r.answers[q.id] !== undefined);
         return acc + (withAns.length > 0 ? withAns.reduce((a, r) => a + r.answers[q.id], 0) / withAns.length : 0);
       }, 0) / qsWithData.length;
-      row[s.shortName] = Math.round(avg * 100) / 100;
+      sectionAvgs[s.shortName] = Math.round(avg * 100) / 100;
     });
-    row.respondentes = pool.length;
+    return { configId, title, count: pool.length, sectionAvgs };
+  });
+
+  // Build chart data: one row per section, one key per form title
+  const truncateTitle = (t: string) => t.length > 25 ? t.substring(0, 22) + "..." : t;
+  const formTitles = formSectionData.map(f => truncateTitle(f.title));
+
+  const evolutionBySection = availableSections.map(s => {
+    const row: Record<string, string | number> = { escala: s.shortName };
+    formSectionData.forEach(f => {
+      row[truncateTitle(f.title)] = f.sectionAvgs[s.shortName] || 0;
+    });
     return row;
   });
 
-  const evolutionByFactor = sortedMonths.map(month => {
-    const pool = monthGroups[month];
-    const row: Record<string, string | number> = { period: month };
+  // Variation table
+  const deltas = hasMultipleForms ? availableSections.map(s => {
+    const values = formSectionData.map(f => ({ title: truncateTitle(f.title), value: f.sectionAvgs[s.shortName] || 0 }));
+    const min = Math.min(...values.map(v => v.value));
+    const max = Math.max(...values.map(v => v.value));
+    return { name: s.shortName, values, delta: max - min };
+  }) : [];
+
+  // Radar comparison
+  const radarComparison = hasMultipleForms ? availableSections.map(s => {
+    const row: Record<string, string | number> = { subject: s.shortName };
+    formSectionData.forEach(f => {
+      row[truncateTitle(f.title)] = f.sectionAvgs[s.shortName] || 0;
+    });
+    return row;
+  }) : [];
+
+  // Factor evolution per form
+  const factorByForm = formEntries.map(([configId, { title, respondents: pool }]) => {
+    const factorAvgs: Record<string, number> = {};
     ALL_FACTORS.forEach(f => {
       const answers = pool.flatMap(r => f.questionIds.map(qId => r.answers[qId]).filter(v => v !== undefined));
-      row[f.shortName] = answers.length > 0 ? Math.round((answers.reduce((a, b) => a + b, 0) / answers.length) * 100) / 100 : 0;
+      factorAvgs[f.shortName] = answers.length > 0 ? Math.round((answers.reduce((a, b) => a + b, 0) / answers.length) * 100) / 100 : 0;
+    });
+    return { configId, title: truncateTitle(title), factorAvgs };
+  });
+
+  const evolutionByFactor = ALL_FACTORS.map(f => {
+    const row: Record<string, string | number> = { fator: f.shortName };
+    factorByForm.forEach(form => {
+      row[form.title] = form.factorAvgs[f.shortName] || 0;
     });
     return row;
   });
 
-  const firstPeriod = evolutionBySection[0];
-  const lastPeriod = evolutionBySection[evolutionBySection.length - 1];
-  const deltas = hasMultiplePeriods ? availableSections.map(s => ({
-    name: s.shortName,
-    primeiro: firstPeriod?.[s.shortName] as number || 0,
-    último: lastPeriod?.[s.shortName] as number || 0,
-    delta: ((lastPeriod?.[s.shortName] as number || 0) - (firstPeriod?.[s.shortName] as number || 0)),
-  })) : [];
-
-  const radarComparison = hasMultiplePeriods ? availableSections.map(s => ({
-    subject: s.shortName,
-    [sortedMonths[0]]: firstPeriod?.[s.shortName] as number || 0,
-    [sortedMonths[sortedMonths.length - 1]]: lastPeriod?.[s.shortName] as number || 0,
-  })) : [];
-
-  const allCompaniesEvolution = !isCompanyUser ? sortedMonths.map(month => {
-    const row: Record<string, string | number> = { period: month };
-    companies.forEach(c => {
-      const pool = respondents.filter(r => {
-        if (r.companyId !== c.id || !r.responseTimestamp) return false;
-        const d = new Date(r.responseTimestamp);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` === month;
-      });
-      if (pool.length === 0) return;
+  // All companies comparison (admin only)
+  const allCompaniesData = !isCompanyUser ? (() => {
+    const companyAvgs = companies.map(c => {
+      const pool = respondents.filter(r => r.companyId === c.id);
+      if (pool.length === 0) return null;
       const avg = availableSections.reduce((acc, s) => {
         const qs = questions.filter(q => q.section === s.id);
         const qsWithData = qs.filter(q => pool.some(r => r.answers[q.id] !== undefined));
@@ -103,18 +118,20 @@ export default function TemporalEvolution() {
           return a + (withAns.length > 0 ? withAns.reduce((x, r) => x + r.answers[q.id], 0) / withAns.length : 0);
         }, 0) / qsWithData.length;
       }, 0) / Math.max(1, availableSections.length);
-      row[c.name.split(" ")[0]] = Math.round(avg * 100) / 100;
-    });
-    return row;
-  }) : [];
+      return { name: c.name.split(" ")[0], avg: Math.round(avg * 100) / 100 };
+    }).filter(Boolean);
+    return companyAvgs;
+  })() : [];
 
   return (
     <DashboardLayout>
-      <div className="animate-fade-in space-y-6">
+      <div className="animate-fade-in space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2"><TrendingUp className="h-5 sm:h-6 w-5 sm:w-6 text-primary" /> Evolução Temporal</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Compare pesquisas da mesma empresa ao longo do tempo</p>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary" /> Evolução Temporal
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Compare formulários da mesma empresa lado a lado</p>
           </div>
           {!isCompanyUser && (
             <select value={effectiveCompany} onChange={e => setSelectedCompany(e.target.value)} className="rounded-lg border border-border bg-background px-3 py-2 text-sm w-full sm:w-auto">
@@ -123,126 +140,157 @@ export default function TemporalEvolution() {
           )}
         </div>
 
-        {!hasMultiplePeriods && (
-          <div className="rounded-xl border border-warning/30 bg-warning/5 p-6 text-center">
-            <AlertTriangle className="h-8 w-8 text-warning mx-auto mb-3" />
-            <h3 className="text-sm font-semibold text-foreground mb-1">Dados insuficientes para evolução temporal</h3>
-            <p className="text-xs text-muted-foreground">É necessário ter respostas de pelo menos 2 períodos diferentes para visualizar a evolução.</p>
+        {!hasMultipleForms && (
+          <div className="rounded-xl border border-warning/30 bg-warning/5 p-4 sm:p-6 text-center">
+            <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-warning mx-auto mb-3" />
+            <h3 className="text-sm font-semibold text-foreground mb-1">Dados insuficientes para comparação</h3>
+            <p className="text-xs text-muted-foreground">
+              {formEntries.length === 0
+                ? "Nenhum formulário com respostas encontrado para esta empresa."
+                : "É necessário ter pelo menos 2 formulários com respostas para visualizar a comparação. Atualmente há apenas 1 formulário."}
+            </p>
           </div>
         )}
 
-        {hasMultiplePeriods && (
+        {hasMultipleForms && (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
               <div className="rounded-lg border border-border bg-card p-3 sm:p-4 text-center">
-                <p className="text-xs text-muted-foreground">Períodos</p>
-                <p className="text-xl sm:text-2xl font-bold text-foreground">{sortedMonths.length}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Formulários</p>
+                <p className="text-lg sm:text-2xl font-bold text-foreground">{formEntries.length}</p>
               </div>
-              <div className="rounded-lg border border-border bg-card p-3 sm:p-4 text-center">
-                <p className="text-xs text-muted-foreground">Primeiro</p>
-                <p className="text-xs sm:text-sm font-bold text-foreground">{sortedMonths[0]}</p>
-                <p className="text-[10px] text-muted-foreground">{firstPeriod?.respondentes} resp.</p>
-              </div>
-              <div className="rounded-lg border border-border bg-card p-3 sm:p-4 text-center">
-                <p className="text-xs text-muted-foreground">Último</p>
-                <p className="text-xs sm:text-sm font-bold text-foreground">{sortedMonths[sortedMonths.length - 1]}</p>
-                <p className="text-[10px] text-muted-foreground">{lastPeriod?.respondentes} resp.</p>
-              </div>
-              <div className="rounded-lg border border-border bg-card p-3 sm:p-4 text-center">
-                <p className="text-xs text-muted-foreground">Total Respostas</p>
-                <p className="text-xl sm:text-2xl font-bold text-foreground">{companyRespondents.length}</p>
-              </div>
+              {formSectionData.slice(0, 3).map((f, i) => (
+                <div key={f.configId} className="rounded-lg border border-border bg-card p-3 sm:p-4 text-center overflow-hidden">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{f.title}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-foreground">{f.count}</p>
+                  <p className="text-[10px] text-muted-foreground">respondentes</p>
+                </div>
+              ))}
             </div>
 
-            <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card min-w-0">
-              <h3 className="mb-4 text-sm font-semibold text-card-foreground">Evolução por Escala</h3>
+            {/* Bar chart: sections by form */}
+            <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card min-w-0">
+              <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Comparação por Escala</h3>
               <ResponsiveChart height={350}>
-                <LineChart data={evolutionBySection}>
+                <BarChart data={evolutionBySection} barCategoryGap="20%">
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="period" tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                  <XAxis dataKey="escala" tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
                   <YAxis domain={[0, 5]} tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip contentStyle={chart.tooltipStyle} />
                   <Legend wrapperStyle={{ fontSize: chart.legendFontSize }} />
-                  {availableSections.map((s, i) => <Line key={s.id} type="monotone" dataKey={s.shortName} stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={{ r: chart.isMobile ? 2 : 4 }} connectNulls />)}
-                </LineChart>
+                  {formTitles.map((title, i) => (
+                    <Bar key={title} dataKey={title} fill={COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} />
+                  ))}
+                </BarChart>
               </ResponsiveChart>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-              <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card min-w-0">
-                <h3 className="mb-4 text-sm font-semibold text-card-foreground">Variação: {sortedMonths[0]} → {sortedMonths[sortedMonths.length - 1]}</h3>
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2">
+              {/* Factor comparison */}
+              <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card min-w-0">
+                <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Comparação por Fator</h3>
                 <ResponsiveChart height={300}>
-                  <BarChart data={deltas} barCategoryGap="20%">
+                  <BarChart data={evolutionByFactor} barCategoryGap="15%">
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="name" tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
-                    <YAxis tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                    <XAxis dataKey="fator" tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis domain={[0, 5]} tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
                     <Tooltip contentStyle={chart.tooltipStyle} />
                     <Legend wrapperStyle={{ fontSize: chart.legendFontSize }} />
-                    <Bar dataKey="primeiro" fill={COLORS[0]} radius={[4, 4, 0, 0]} name="Primeiro período" />
-                    <Bar dataKey="último" fill={COLORS[1]} radius={[4, 4, 0, 0]} name="Último período" />
+                    {formTitles.map((title, i) => (
+                      <Bar key={title} dataKey={title} fill={COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} />
+                    ))}
                   </BarChart>
                 </ResponsiveChart>
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card min-w-0">
-                <h3 className="mb-4 text-sm font-semibold text-card-foreground">Radar: Primeiro vs Último</h3>
+              {/* Radar comparison */}
+              <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card min-w-0">
+                <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Radar: Comparação entre Formulários</h3>
                 <ResponsiveChart height={300}>
                   <RadarChart data={radarComparison} cx="50%" cy="50%" outerRadius={chart.radarOuterRadius}>
                     <PolarGrid stroke="hsl(var(--border))" />
                     <PolarAngleAxis dataKey="subject" tick={{ fontSize: chart.radarAngleFontSize, fill: "hsl(var(--muted-foreground))" }} />
                     <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fontSize: 9 }} />
-                    <Radar name={sortedMonths[0]} dataKey={sortedMonths[0]} stroke={COLORS[0]} fill={COLORS[0]} fillOpacity={0.1} strokeWidth={2} />
-                    <Radar name={sortedMonths[sortedMonths.length - 1]} dataKey={sortedMonths[sortedMonths.length - 1]} stroke={COLORS[1]} fill={COLORS[1]} fillOpacity={0.1} strokeWidth={2} />
+                    {formTitles.map((title, i) => (
+                      <Radar key={title} name={title} dataKey={title} stroke={COLORS[i % COLORS.length]} fill={COLORS[i % COLORS.length]} fillOpacity={0.1} strokeWidth={2} />
+                    ))}
                     <Legend wrapperStyle={{ fontSize: chart.legendFontSize }} />
                   </RadarChart>
                 </ResponsiveChart>
               </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card">
-              <h3 className="mb-4 text-sm font-semibold text-card-foreground">Detalhamento da Variação</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead><tr className="border-b border-border">
-                    <th className="px-3 sm:px-4 py-2 text-left font-semibold text-muted-foreground">Escala</th>
-                    <th className="px-3 sm:px-4 py-2 text-center font-semibold text-muted-foreground">{sortedMonths[0]}</th>
-                    <th className="px-3 sm:px-4 py-2 text-center font-semibold text-muted-foreground">{sortedMonths[sortedMonths.length - 1]}</th>
-                    <th className="px-3 sm:px-4 py-2 text-center font-semibold text-muted-foreground">Variação</th>
-                    <th className="px-3 sm:px-4 py-2 text-center font-semibold text-muted-foreground">Tendência</th>
-                  </tr></thead>
-                  <tbody>{deltas.map(d => (
-                    <tr key={d.name} className="border-b border-border/50">
-                      <td className="px-3 sm:px-4 py-2 font-medium text-foreground">{d.name}</td>
-                      <td className="px-3 sm:px-4 py-2 text-center text-muted-foreground">{d.primeiro.toFixed(2)}</td>
-                      <td className="px-3 sm:px-4 py-2 text-center text-foreground font-medium">{d.último.toFixed(2)}</td>
-                      <td className="px-3 sm:px-4 py-2 text-center">
-                        <span className={cn("font-bold", d.delta > 0 ? "text-success" : d.delta < 0 ? "text-destructive" : "text-muted-foreground")}>
-                          {d.delta > 0 ? "+" : ""}{d.delta.toFixed(2)}
-                        </span>
-                      </td>
-                      <td className="px-3 sm:px-4 py-2 text-center text-lg">
-                        {d.delta > 0.1 ? "📈" : d.delta < -0.1 ? "📉" : "➡️"}
-                      </td>
+            {/* Detail table */}
+            <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card">
+              <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Detalhamento por Escala</h3>
+              <div className="overflow-x-auto -mx-3 sm:mx-0">
+                <table className="w-full text-xs sm:text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="px-2 sm:px-4 py-2 text-left font-semibold text-muted-foreground">Escala</th>
+                      {formSectionData.map((f, i) => (
+                        <th key={f.configId} className="px-2 sm:px-4 py-2 text-center font-semibold text-muted-foreground">
+                          <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                          <span className="hidden sm:inline">{truncateTitle(f.title)}</span>
+                          <span className="sm:hidden">F{i + 1}</span>
+                        </th>
+                      ))}
+                      {formSectionData.length >= 2 && (
+                        <th className="px-2 sm:px-4 py-2 text-center font-semibold text-muted-foreground">Variação</th>
+                      )}
                     </tr>
-                  ))}</tbody>
+                  </thead>
+                  <tbody>
+                    {availableSections.map(s => {
+                      const values = formSectionData.map(f => f.sectionAvgs[s.shortName] || 0);
+                      const delta = values.length >= 2 ? Math.max(...values) - Math.min(...values) : 0;
+                      return (
+                        <tr key={s.id} className="border-b border-border/50">
+                          <td className="px-2 sm:px-4 py-2 font-medium text-foreground">{s.shortName}</td>
+                          {formSectionData.map(f => (
+                            <td key={f.configId} className="px-2 sm:px-4 py-2 text-center text-foreground font-medium">
+                              {(f.sectionAvgs[s.shortName] || 0).toFixed(2)}
+                            </td>
+                          ))}
+                          {formSectionData.length >= 2 && (
+                            <td className="px-2 sm:px-4 py-2 text-center">
+                              <span className={cn("font-bold", delta > 0.3 ? "text-destructive" : delta > 0.1 ? "text-warning" : "text-success")}>
+                                ±{delta.toFixed(2)}
+                              </span>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
                 </table>
+              </div>
+              {/* Mobile legend */}
+              <div className="sm:hidden mt-3 flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+                {formSectionData.map((f, i) => (
+                  <span key={f.configId} className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                    F{i + 1}: {truncateTitle(f.title)}
+                  </span>
+                ))}
               </div>
             </div>
           </>
         )}
 
-        {!isCompanyUser && allCompaniesEvolution.length > 1 && (
-          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-card min-w-0">
-            <h3 className="mb-4 text-sm font-semibold text-card-foreground">Evolução de Todas as Empresas</h3>
-            <ResponsiveChart height={350}>
-              <LineChart data={allCompaniesEvolution}>
+        {/* All companies (admin only) */}
+        {!isCompanyUser && allCompaniesData && allCompaniesData.length > 1 && (
+          <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card min-w-0">
+            <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Média Geral por Empresa</h3>
+            <ResponsiveChart height={300}>
+              <BarChart data={allCompaniesData} barCategoryGap="20%">
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="period" tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                <XAxis dataKey="name" tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
                 <YAxis domain={[0, 5]} tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
                 <Tooltip contentStyle={chart.tooltipStyle} />
-                <Legend wrapperStyle={{ fontSize: chart.legendFontSize }} />
-                {companies.map((c, i) => <Line key={c.id} type="monotone" dataKey={c.name.split(" ")[0]} stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={{ r: chart.isMobile ? 2 : 4 }} connectNulls />)}
-              </LineChart>
+                <Bar dataKey="avg" fill={COLORS[0]} radius={[4, 4, 0, 0]} name="Média Geral" />
+              </BarChart>
             </ResponsiveChart>
           </div>
         )}
