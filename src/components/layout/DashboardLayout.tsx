@@ -12,8 +12,8 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user } = useAuth();
-  useOnboarding(user?.id);
+  const { user, role } = useAuth();
+  useOnboarding(user?.id, role);
 
   return (
     <div className="flex min-h-screen">
