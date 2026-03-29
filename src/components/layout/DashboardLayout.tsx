@@ -2,6 +2,8 @@ import { useState } from "react";
 import { ProativaSidebar } from "./ProativaSidebar";
 import { ProativaTopbar } from "./ProativaTopbar";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useOnboarding } from "@/hooks/useOnboarding";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -10,6 +12,8 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user } = useAuth();
+  useOnboarding(user?.id);
 
   return (
     <div className="flex min-h-screen">
