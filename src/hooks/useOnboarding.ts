@@ -135,7 +135,7 @@ export function useOnboarding(userId: string | undefined, role: AppRole | null) 
             <p style="margin:0;font-size:13px;opacity:0.85">${welcomeStep.description}</p>
           </div>
         `,
-        position: welcomeStep.position,
+        position: welcomeStep.position as "right",
       },
       ...visibleSteps.map((step) => ({
         element: `[data-onboarding="${step.id}"]`,
@@ -143,7 +143,7 @@ export function useOnboarding(userId: string | undefined, role: AppRole | null) 
           <h3 style="margin:0 0 6px;font-weight:700;font-size:14px">${step.title}</h3>
           <p style="margin:0;font-size:13px;line-height:1.5">${step.description}</p>
         `,
-        position: step.position,
+        position: step.position as "right",
       })),
     ];
 
