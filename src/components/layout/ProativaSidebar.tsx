@@ -86,6 +86,7 @@ export function ProativaSidebar({ collapsed, setCollapsed, mobileOpen, setMobile
             const isActive = location.pathname === item.path;
             return (
               <NavLink key={item.path} to={item.path} onClick={handleNavClick}
+                data-onboarding={item.onboardingId}
                 className={cn("group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   isActive ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground")}>
                 {isActive && <div className="absolute -left-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-sidebar-ring" />}
