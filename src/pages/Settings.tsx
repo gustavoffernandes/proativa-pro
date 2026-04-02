@@ -40,7 +40,7 @@ const ROLE_LABEL: Record<string, string> = {
 export default function Settings() {
   const { user, isAdmin } = useAuth();
   const qc = useQueryClient();
-  const tabs = allTabs.filter(t => !t.adminOnly || isAdmin);
+  const tabs = allTabs;
   const [activeTab, setActiveTab] = useState<TabId>("perfil");
 
   // Profile fields (no email)
