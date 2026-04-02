@@ -7,12 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-type TabId = "perfil" | "usuarios" | "aparencia" | "geral";
-type ThemeMode = "light" | "dark" | "system";
+type TabId = "perfil" | "aparencia" | "geral";
 
-const allTabs: { id: TabId; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
+const allTabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "perfil", label: "Perfil", icon: User },
-  { id: "usuarios", label: "Usuários", icon: UserPlus, adminOnly: true },
   { id: "aparencia", label: "Aparência", icon: Palette },
   { id: "geral", label: "Geral", icon: SettingsIcon },
 ];
