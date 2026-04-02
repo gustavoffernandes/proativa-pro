@@ -13,8 +13,9 @@ const allTabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "perfil", label: "Perfil", icon: User },
   { id: "aparencia", label: "Aparência", icon: Palette },
   { id: "geral", label: "Geral", icon: SettingsIcon },
-type ThemeMode = "light" | "dark" | "system";
+];
 
+type ThemeMode = "light" | "dark" | "system";
 
 function getStoredTheme(): ThemeMode {
   return (localStorage.getItem("proativa-theme") as ThemeMode) || "system";
