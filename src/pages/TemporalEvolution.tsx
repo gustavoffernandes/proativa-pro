@@ -291,17 +291,20 @@ export default function TemporalEvolution() {
           </>
         )}
 
-        {/* All companies (admin only) */}
-        {!isCompanyUser && allCompaniesData && allCompaniesData.length > 1 && (
+        {/* Evolução das Médias por Escala (admin only) */}
+        {!isCompanyUser && scaleEvolutionData && scaleEvolutionData.length > 0 && (
           <div className="rounded-xl border border-border bg-card p-3 sm:p-5 shadow-card min-w-0">
-            <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Média Geral por Empresa</h3>
-            <ResponsiveChart height={300}>
-              <BarChart data={allCompaniesData} barCategoryGap="20%">
+            <h3 className="mb-4 text-xs sm:text-sm font-semibold text-card-foreground">Evolução das Médias por Escala</h3>
+            <ResponsiveChart height={350}>
+              <BarChart data={scaleEvolutionData} barCategoryGap="15%">
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
+                <XAxis dataKey="escala" tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
                 <YAxis domain={[0, 5]} tick={{ fontSize: chart.tickFontSize, fill: "hsl(var(--muted-foreground))" }} />
                 <Tooltip contentStyle={chart.tooltipStyle} />
-                <Bar dataKey="avg" fill={COLORS[0]} radius={[4, 4, 0, 0]} name="Média Geral" />
+                <Legend wrapperStyle={{ fontSize: chart.legendFontSize }} />
+                {scaleEvolutionKeys.map((key, i) => (
+                  <Bar key={key} dataKey={key} fill={COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} />
+                ))}
               </BarChart>
             </ResponsiveChart>
           </div>

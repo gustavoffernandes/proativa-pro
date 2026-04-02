@@ -24,7 +24,7 @@ const COLORS = ["hsl(217, 71%, 45%)", "hsl(170, 60%, 45%)", "hsl(38, 92%, 55%)",
 
 export default function Index() {
   const { isCompanyUser } = useAuth();
-  const { isLoading, hasData, companies, respondents, getSectionAverage, getCompanyRespondents, getAvailableSections } = useSurveyData();
+  const { isLoading, hasData, companies, respondents, formConfigs, getSectionAverage, getCompanyRespondents, getAvailableSections } = useSurveyData();
   const { plans, tasks, isLoading: loadingPlans } = useActionPlans();
   const availableSections = getAvailableSections();
   const [startDate, setStartDate] = useState<Date | undefined>();
