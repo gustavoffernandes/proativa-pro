@@ -7,15 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-type TabId = "perfil" | "usuarios" | "aparencia" | "geral";
-type ThemeMode = "light" | "dark" | "system";
+type TabId = "perfil" | "aparencia" | "geral";
 
-const allTabs: { id: TabId; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
+const allTabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "perfil", label: "Perfil", icon: User },
-  { id: "usuarios", label: "Usuários", icon: UserPlus, adminOnly: true },
   { id: "aparencia", label: "Aparência", icon: Palette },
   { id: "geral", label: "Geral", icon: SettingsIcon },
 ];
+
+type ThemeMode = "light" | "dark" | "system";
 
 function getStoredTheme(): ThemeMode {
   return (localStorage.getItem("proativa-theme") as ThemeMode) || "system";
@@ -41,7 +41,7 @@ const ROLE_LABEL: Record<string, string> = {
 export default function Settings() {
   const { user, isAdmin } = useAuth();
   const qc = useQueryClient();
-  const tabs = allTabs.filter(t => !t.adminOnly || isAdmin);
+  const tabs = allTabs;
   const [activeTab, setActiveTab] = useState<TabId>("perfil");
 
   // Profile fields (no email)
@@ -263,133 +263,7 @@ export default function Settings() {
               </div>
             )}
 
-            {/* USUÁRIOS */}
-            {activeTab === "usuarios" && (
-              <div className="space-y-8 max-w-2xl">
-                {/* Criar usuário */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-card-foreground">Criar Novo Usuário</h3>
-                  <div className="space-y-1"><label className="text-sm font-medium text-foreground">E-mail</label><input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} placeholder="novo@email.com" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" /></div>
-                  <div className="space-y-1"><label className="text-sm font-medium text-foreground">Senha</label><input type="password" value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} placeholder="Mínimo 8 caracteres" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" /></div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-foreground">Tipo de Usuário</label>
-                    <select value={newUserRole} onChange={e => { setNewUserRole(e.target.value as "admin" | "user" | "company_user"); setNewUserCompanyId(""); }} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
-                      <option value="user">Usuário Geral (visualiza todas as empresas)</option>
-                      <option value="company_user">Usuário Empresa (restrito a uma empresa)</option>
-                      <option value="admin">Administrador</option>
-                    </select>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {newUserRole === "admin" && "Acesso total: gerencia integrações, usuários e todos os dados."}
-                      {newUserRole === "user" && "Visualiza dados de todas as empresas, sem permissão de administração."}
-                      {newUserRole === "company_user" && "Visualiza apenas os dados da empresa selecionada abaixo."}
-                    </p>
-                  </div>
-                  {newUserRole === "company_user" && (
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium text-foreground">Empresa Vinculada</label>
-                      <select value={newUserCompanyId} onChange={e => setNewUserCompanyId(e.target.value)} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
-                        <option value="">Selecione uma empresa...</option>
-                        {companiesList.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
-                      </select>
-                    </div>
-                  )}
-                  <button onClick={handleCreateUser} disabled={creatingUser} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors">{creatingUser ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} Criar Usuário</button>
-                </div>
 
-                {/* Lista de usuários */}
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-card-foreground">Usuários Cadastrados</h3>
-                  {loadingUsers ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando...</div>
-                  ) : userRoles.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhum usuário encontrado.</p>
-                  ) : (
-                    <div className="rounded-lg border border-border overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-border bg-muted/50">
-                            <th className="px-4 py-2.5 text-left font-semibold text-muted-foreground">E-mail</th>
-                            <th className="px-4 py-2.5 text-center font-semibold text-muted-foreground">Perfil</th>
-                            <th className="px-4 py-2.5 text-center font-semibold text-muted-foreground">Empresa</th>
-                            <th className="px-4 py-2.5 text-center font-semibold text-muted-foreground">Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {userRoles.map(ur => {
-                            const isEditing = editingUserId === ur.id;
-                            const isCurrentUser = ur.user_id === user?.id;
-                            const companyName = ur.company_id ? allCompanies.find(c => c.id === ur.company_id)?.company_name || ur.company_id : "—";
-                            return (
-                              <tr key={ur.id} className="border-b border-border/50 last:border-0">
-                                 <td className="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" title={ur.user_id}>
-                                   {(ur as any).email || ur.user_id.substring(0, 16) + "…"}
-                                   {isCurrentUser && <span className="ml-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">você</span>}
-                                 </td>
-                                <td className="px-4 py-2.5 text-center">
-                                  {isEditing ? (
-                                    <select value={editingRole} onChange={e => setEditingRole(e.target.value)}
-                                      className="rounded border border-border bg-background px-2 py-1 text-xs">
-                                      <option value="admin">Administrador</option>
-                                      <option value="user">Usuário Geral</option>
-                                      <option value="company_user">Usuário Empresa</option>
-                                    </select>
-                                  ) : (
-                                    <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                                      ur.role === "admin" ? "bg-destructive/10 text-destructive" :
-                                      ur.role === "company_user" ? "bg-primary/10 text-primary" :
-                                      "bg-muted text-muted-foreground")}>
-                                      {ROLE_LABEL[ur.role] || ur.role}
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-2.5 text-center text-xs text-muted-foreground">
-                                  {isEditing && editingRole === "company_user" ? (
-                                    <select value={editingCompanyId} onChange={e => setEditingCompanyId(e.target.value)}
-                                      className="rounded border border-border bg-background px-2 py-1 text-xs w-full">
-                                      <option value="">Selecione...</option>
-                                      {companiesList.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
-                                    </select>
-                                  ) : companyName}
-                                </td>
-                                <td className="px-4 py-2.5 text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    {isEditing ? (
-                                      <>
-                                        <button onClick={() => handleUpdateUserRole(ur.id)}
-                                          className="rounded p-1 text-success hover:bg-success/10 transition-colors" title="Salvar">
-                                          <Check className="h-4 w-4" />
-                                        </button>
-                                        <button onClick={() => setEditingUserId(null)}
-                                          className="rounded p-1 text-muted-foreground hover:bg-muted transition-colors" title="Cancelar">
-                                          <X className="h-4 w-4" />
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <button onClick={() => { setEditingUserId(ur.id); setEditingRole(ur.role); setEditingCompanyId(ur.company_id || ""); }}
-                                          className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Editar">
-                                          <Pencil className="h-3.5 w-3.5" />
-                                        </button>
-                                        {!isCurrentUser && (
-                                          <button onClick={() => handleDeleteUser(ur.id, ur.user_id)}
-                                            className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors" title="Excluir">
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                          </button>
-                                        )}
-                                      </>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* APARÊNCIA */}
             {activeTab === "aparencia" && (
