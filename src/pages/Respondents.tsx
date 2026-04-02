@@ -137,7 +137,7 @@ export default function Respondents() {
                       const form = formConfigs?.find(f => f.configId === r.configId);
                       return (
                         <tr key={i} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-3 text-foreground">{r.respondentName || "Anônimo"}</td>
+                          <td className="px-4 py-3 text-foreground">{r.name || "Anônimo"}</td>
                           <td className="px-4 py-3 text-muted-foreground">{company?.name || "—"}</td>
                           <td className="px-4 py-3 text-muted-foreground">{r.sector || "—"}</td>
                           <td className="px-4 py-3 text-muted-foreground truncate max-w-[200px]">{form?.title || "—"}</td>
