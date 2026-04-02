@@ -164,7 +164,7 @@ export default function Respondents() {
                   return (
                     <div key={i} className="p-4 space-y-1">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-foreground">{r.respondentName || "Anônimo"}</p>
+                        <p className="text-sm font-medium text-foreground">{r.name || "Anônimo"}</p>
                         <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success px-2 py-0.5 text-[10px] font-semibold">
                           <CheckCircle2 className="h-3 w-3" /> Concluído
                         </span>

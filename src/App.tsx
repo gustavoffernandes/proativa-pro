@@ -12,7 +12,7 @@ import CompanyComparison from "./pages/CompanyComparison";
 import Demographics from "./pages/Demographics";
 import Heatmap from "./pages/Heatmap";
 import Reports from "./pages/Reports";
-import GoogleSheetsConfig from "./pages/GoogleSheetsConfig";
+import Forms from "./pages/Forms";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
@@ -21,6 +21,10 @@ import CompanyNotes from "./pages/CompanyNotes";
 import ActionPlans from "./pages/ActionPlans";
 import TemporalEvolution from "./pages/TemporalEvolution";
 import Companies from "./pages/Companies";
+import Respondents from "./pages/Respondents";
+import Users from "./pages/Users";
+import Help from "./pages/Help";
+import Subscription from "./pages/Subscription";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,10 +54,14 @@ const App = () => (
               <Route path="/evolucao" element={<ProtectedRoute><TemporalEvolution /></ProtectedRoute>} />
               <Route path="/relatorios" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
               <Route path="/empresas-cadastro" element={<ProtectedRoute requireAdmin><Companies /></ProtectedRoute>} />
-              <Route path="/integracoes" element={<ProtectedRoute requireAdmin><GoogleSheetsConfig /></ProtectedRoute>} />
+              <Route path="/formularios" element={<ProtectedRoute requireAdmin><Forms /></ProtectedRoute>} />
+              <Route path="/respondentes" element={<ProtectedRoute requireAdmin><Respondents /></ProtectedRoute>} />
+              <Route path="/usuarios" element={<ProtectedRoute requireAdmin><Users /></ProtectedRoute>} />
               <Route path="/notas" element={<ProtectedRoute><CompanyNotes /></ProtectedRoute>} />
               <Route path="/plano-acao" element={<ProtectedRoute><ActionPlans /></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/ajuda" element={<ProtectedRoute><Help /></ProtectedRoute>} />
+              <Route path="/assinatura" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </ErrorBoundary>
