@@ -131,7 +131,7 @@ export default function Index() {
           {!isCompanyUser && <KPICard title="Empresas Ativas" value={totalCompanies} subtitle="configuradas" sparkData={[totalCompanies]} color="hsl(217, 71%, 45%)" />}
           <KPICard title="Total Respostas" value={totalRespondents} subtitle="respondentes" sparkData={[totalRespondents]} color="hsl(170, 60%, 45%)" />
           <KPICard title="Média Geral" value={overallAvg.toFixed(2)} subtitle="escala 1-5" sparkData={[overallAvg]} color="hsl(38, 92%, 55%)" />
-          <KPICard title="Escalas PROART" value={availableSections.length} subtitle={`de 4 escalas`} sparkData={[availableSections.length]} color="hsl(280, 60%, 55%)" />
+          <KPICard title="Formulários Criados" value={formConfigs?.length || 0} subtitle="pesquisas cadastradas" sparkData={[formConfigs?.length || 0]} color="hsl(280, 60%, 55%)" />
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
