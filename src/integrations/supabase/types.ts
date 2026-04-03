@@ -171,45 +171,69 @@ export type Database = {
           cnpj: string
           company_name: string
           created_at: string
+          description: string | null
           employee_count: number | null
+          end_date: string | null
           form_title: string | null
           form_url: string | null
           id: string
+          instructions: string | null
           is_active: boolean
+          is_anonymous: boolean | null
           last_sync_at: string | null
+          require_consent: boolean | null
+          require_password: boolean | null
           sector: string | null
           sheet_name: string
           spreadsheet_id: string
+          start_date: string | null
+          survey_password: string | null
           updated_at: string
         }
         Insert: {
           cnpj: string
           company_name: string
           created_at?: string
+          description?: string | null
           employee_count?: number | null
+          end_date?: string | null
           form_title?: string | null
           form_url?: string | null
           id?: string
+          instructions?: string | null
           is_active?: boolean
+          is_anonymous?: boolean | null
           last_sync_at?: string | null
+          require_consent?: boolean | null
+          require_password?: boolean | null
           sector?: string | null
           sheet_name?: string
           spreadsheet_id: string
+          start_date?: string | null
+          survey_password?: string | null
           updated_at?: string
         }
         Update: {
           cnpj?: string
           company_name?: string
           created_at?: string
+          description?: string | null
           employee_count?: number | null
+          end_date?: string | null
           form_title?: string | null
           form_url?: string | null
           id?: string
+          instructions?: string | null
           is_active?: boolean
+          is_anonymous?: boolean | null
           last_sync_at?: string | null
+          require_consent?: boolean | null
+          require_password?: boolean | null
           sector?: string | null
           sheet_name?: string
           spreadsheet_id?: string
+          start_date?: string | null
+          survey_password?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -218,35 +242,53 @@ export type Database = {
         Row: {
           age: number | null
           answers: Json
+          cargo: string | null
           config_id: string
           created_at: string
+          escolaridade: string | null
+          estado_civil: string | null
+          ghe: string | null
           id: string
+          open_answers: Json | null
           respondent_name: string | null
           response_timestamp: string | null
           sector: string | null
           sex: string | null
+          tempo_empresa: string | null
         }
         Insert: {
           age?: number | null
           answers?: Json
+          cargo?: string | null
           config_id: string
           created_at?: string
+          escolaridade?: string | null
+          estado_civil?: string | null
+          ghe?: string | null
           id?: string
+          open_answers?: Json | null
           respondent_name?: string | null
           response_timestamp?: string | null
           sector?: string | null
           sex?: string | null
+          tempo_empresa?: string | null
         }
         Update: {
           age?: number | null
           answers?: Json
+          cargo?: string | null
           config_id?: string
           created_at?: string
+          escolaridade?: string | null
+          estado_civil?: string | null
+          ghe?: string | null
           id?: string
+          open_answers?: Json | null
           respondent_name?: string | null
           response_timestamp?: string | null
           sector?: string | null
           sex?: string | null
+          tempo_empresa?: string | null
         }
         Relationships: [
           {
