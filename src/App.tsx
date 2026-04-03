@@ -25,6 +25,7 @@ import Respondents from "./pages/Respondents";
 import Users from "./pages/Users";
 import Help from "./pages/Help";
 import Subscription from "./pages/Subscription";
+import PublicSurvey from "./pages/PublicSurvey";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +46,7 @@ const App = () => (
           <ErrorBoundary>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/pesquisa/:id" element={<PublicSurvey />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/analise" element={<ProtectedRoute><SurveyAnalysis /></ProtectedRoute>} />
