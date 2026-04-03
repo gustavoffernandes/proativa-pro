@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -103,6 +103,39 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          entity: string
+          entity_id: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity: string
+          entity_id?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       company_notes: {
         Row: {
           company_config_id: string
@@ -135,7 +168,7 @@ export type Database = {
       }
       google_forms_config: {
         Row: {
-          cnpj: string | null
+          cnpj: string
           company_name: string
           created_at: string
           employee_count: number | null
@@ -150,7 +183,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          cnpj?: string | null
+          cnpj: string
           company_name: string
           created_at?: string
           employee_count?: number | null
@@ -165,7 +198,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          cnpj?: string | null
+          cnpj?: string
           company_name?: string
           created_at?: string
           employee_count?: number | null
