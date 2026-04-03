@@ -140,14 +140,20 @@ export default function Forms() {
   };
 
   const startEdit = (config: FormConfig) => {
+    const cfg = config as any;
     setFormData({
       company_cnpj: config.cnpj || "",
-      form_title: (config as any).form_title || config.company_name,
-      description: "",
-      instructions: "Esta pesquisa é anônima e confidencial. Suas respostas serão utilizadas para melhorar o ambiente de trabalho. Por favor, responda com sinceridade.",
-      start_date: "", end_date: "",
+      form_title: cfg.form_title || config.company_name,
+      description: cfg.description || "",
+      instructions: cfg.instructions || "Esta pesquisa é anônima e confidencial. Suas respostas serão utilizadas para melhorar o ambiente de trabalho. Por favor, responda com sinceridade.",
+      start_date: cfg.start_date || "",
+      end_date: cfg.end_date || "",
       is_active: config.is_active,
-      is_anonymous: true, require_cpf: false, require_consent: true, require_password: false, survey_password: "",
+      is_anonymous: cfg.is_anonymous ?? true,
+      require_cpf: false,
+      require_consent: cfg.require_consent ?? true,
+      require_password: cfg.require_password ?? false,
+      survey_password: cfg.survey_password || "",
     });
     setEditingId(config.id);
     setShowForm(true);
