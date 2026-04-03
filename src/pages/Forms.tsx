@@ -92,6 +92,14 @@ export default function Forms() {
         spreadsheet_id: "__internal__",
         sheet_name: "internal",
         is_active: data.is_active,
+        description: data.description || "",
+        instructions: data.instructions || "",
+        start_date: data.start_date || null,
+        end_date: data.end_date || null,
+        is_anonymous: data.is_anonymous,
+        require_consent: data.require_consent,
+        require_password: data.require_password,
+        survey_password: data.require_password ? data.survey_password : "",
       };
 
       if (editingId) {
