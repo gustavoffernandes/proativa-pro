@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 
 type Step = "welcome" | "consent" | "password" | "demographics" | "scale-0" | "scale-1" | "scale-2" | "scale-3" | "open" | "review" | "submitted";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 
 interface FormConfig {
   id: string;
