@@ -169,7 +169,7 @@ export default function Forms() {
         getAvailableSections: surveyData.getAvailableSections,
         getAvailableQuestions: surveyData.getAvailableQuestions,
         formConfigs: [{ configId: config.id, title: (config as any).form_title || config.company_name }],
-      }, companyKey);
+      });
       toast({ title: "PDF gerado com sucesso!" });
     } catch (e: any) {
       toast({ title: "Erro ao gerar PDF", description: e.message, variant: "destructive" });
