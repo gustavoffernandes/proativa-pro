@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Settings as SettingsIcon, User, Palette, Save, UserPlus, Loader2, Sun, Moon, Monitor, Pencil, Trash2, X, Check } from "lucide-react";
+import { Settings as SettingsIcon, User, Palette, Save, UserPlus, Loader2, Sun, Moon, Monitor, Pencil, Trash2, X, Check, Lock, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,11 +44,18 @@ export default function Settings() {
   const tabs = allTabs;
   const [activeTab, setActiveTab] = useState<TabId>("perfil");
 
-  // Profile fields (no email)
+  // Profile fields
   const [profileName, setProfileName] = useState(user?.user_metadata?.full_name || "");
   const [profileRole, setProfileRole] = useState(user?.user_metadata?.role_label || "");
   const [profileCompany, setProfileCompany] = useState(user?.user_metadata?.company_name || "");
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Change password
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
@@ -56,7 +63,6 @@ export default function Settings() {
   const [newUserCompanyId, setNewUserCompanyId] = useState("");
   const [creatingUser, setCreatingUser] = useState(false);
 
-  // User edit state
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<string>("");
   const [editingCompanyId, setEditingCompanyId] = useState<string>("");
@@ -77,7 +83,6 @@ export default function Settings() {
     localStorage.setItem("proativa-fontsize", fontSize);
   }, [fontSize]);
 
-  // Active companies for user creation dropdown
   const { data: companiesList = [] } = useQuery({
     queryKey: ["companies-for-user-creation"],
     queryFn: async () => {
@@ -97,7 +102,6 @@ export default function Settings() {
     enabled: isAdmin,
   });
 
-  // All companies (including inactive) for resolving company names in user list
   const { data: allCompanies = [] } = useQuery({
     queryKey: ["all-companies-for-lookup"],
     queryFn: async () => {
@@ -111,24 +115,19 @@ export default function Settings() {
     enabled: isAdmin,
   });
 
-  // Fetch all user roles enriched with email from edge function
   const { data: userRoles = [], isLoading: loadingUsers } = useQuery({
     queryKey: ["all-user-roles"],
     queryFn: async () => {
-      // Puxa TANTO os emails quanto as roles direto da Edge Function
       const { data: fnData, error: fnError } = await supabase.functions.invoke("create-user", {
         body: JSON.stringify({ action: "list" }),
         headers: { "Content-Type": "application/json" },
       });
       if (fnError) throw fnError;
-
       const parsed = typeof fnData === "string" ? JSON.parse(fnData) : fnData;
       const emailMap: Record<string, string> = {};
-      
       if (parsed?.users) {
         parsed.users.forEach((u: any) => { emailMap[u.id] = u.email; });
       }
-
       const rolesData = parsed?.roles || [];
       return rolesData.map((r: any) => ({ ...r, email: emailMap[r.user_id] || "" }));
     },
@@ -148,6 +147,30 @@ export default function Settings() {
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
     }
     setSavingProfile(false);
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) { toast({ title: "Erro", description: "A nova senha deve ter pelo menos 6 caracteres.", variant: "destructive" }); return; }
+    if (newPassword !== confirmNewPassword) { toast({ title: "Erro", description: "As senhas não coincidem.", variant: "destructive" }); return; }
+    if (!currentPassword) { toast({ title: "Erro", description: "Informe a senha atual.", variant: "destructive" }); return; }
+
+    setChangingPassword(true);
+    try {
+      // Verify current password by re-signing in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || "",
+        password: currentPassword,
+      });
+      if (signInError) { toast({ title: "Erro", description: "Senha atual incorreta.", variant: "destructive" }); setChangingPassword(false); return; }
+
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast({ title: "Senha alterada!", description: "Sua senha foi atualizada com sucesso." });
+      setCurrentPassword(""); setNewPassword(""); setConfirmNewPassword("");
+    } catch (e: any) {
+      toast({ title: "Erro ao alterar senha", description: e.message, variant: "destructive" });
+    }
+    setChangingPassword(false);
   };
 
   const handleCreateUser = async () => {
@@ -175,15 +198,12 @@ export default function Settings() {
     try {
       const body: any = { action: "update", role_id: userRoleId, role: editingRole };
       if (editingRole === "company_user") body.company_id = editingCompanyId || null;
-
       const { data, error } = await supabase.functions.invoke("create-user", {
         body: JSON.stringify(body),
         headers: { "Content-Type": "application/json" },
       });
-      
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
       toast({ title: "Usuário atualizado!" });
       setEditingUserId(null);
       qc.invalidateQueries({ queryKey: ["all-user-roles"] });
@@ -199,10 +219,8 @@ export default function Settings() {
         body: JSON.stringify({ action: "delete", user_id: userId, role_id: userRoleId }),
         headers: { "Content-Type": "application/json" },
       });
-      
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
       toast({ title: "Usuário removido!" });
       qc.invalidateQueries({ queryKey: ["all-user-roles"] });
     } catch (e: any) {
@@ -236,34 +254,68 @@ export default function Settings() {
 
             {/* PERFIL */}
             {activeTab === "perfil" && (
-              <div className="space-y-4 max-w-md">
-                <h3 className="text-lg font-semibold text-card-foreground">Perfil</h3>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-foreground">Nome</label>
-                  <input value={profileName} onChange={e => setProfileName(e.target.value)}
-                    placeholder="Seu nome completo"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" />
+              <div className="space-y-8 max-w-md">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-card-foreground">Perfil</h3>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-foreground">Nome</label>
+                    <input value={profileName} onChange={e => setProfileName(e.target.value)}
+                      placeholder="Seu nome completo"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-foreground">Cargo</label>
+                    <input value={profileRole} onChange={e => setProfileRole(e.target.value)}
+                      placeholder="Ex: Gestor SST"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-foreground">Empresa</label>
+                    <input value={profileCompany} onChange={e => setProfileCompany(e.target.value)}
+                      placeholder="Ex: PROATIVA Consultoria"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" />
+                  </div>
+                  <button onClick={handleSaveProfile} disabled={savingProfile}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors">
+                    {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar
+                  </button>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-foreground">Cargo</label>
-                  <input value={profileRole} onChange={e => setProfileRole(e.target.value)}
-                    placeholder="Ex: Gestor SST"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" />
+
+                {/* Change Password */}
+                <div className="space-y-4 border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-card-foreground flex items-center gap-2"><Lock className="h-4 w-4" /> Alterar Senha</h3>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-foreground">Senha Atual *</label>
+                    <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
+                      placeholder="Digite sua senha atual"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-foreground">Nova Senha *</label>
+                    <div className="relative">
+                      <input type={showNewPassword ? "text" : "password"} value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                        placeholder="Mínimo 6 caracteres"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" />
+                      <button type="button" onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Mínimo 6 caracteres</p>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-foreground">Confirmar Nova Senha *</label>
+                    <input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)}
+                      placeholder="Repita a nova senha"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" />
+                  </div>
+                  <button onClick={handleChangePassword} disabled={changingPassword || !currentPassword || !newPassword || !confirmNewPassword}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors">
+                    {changingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Alterar Senha
+                  </button>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-foreground">Empresa</label>
-                  <input value={profileCompany} onChange={e => setProfileCompany(e.target.value)}
-                    placeholder="Ex: PROATIVA Consultoria"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" />
-                </div>
-                <button onClick={handleSaveProfile} disabled={savingProfile}
-                  className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors">
-                  {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar
-                </button>
               </div>
             )}
-
-
 
             {/* APARÊNCIA */}
             {activeTab === "aparencia" && (
