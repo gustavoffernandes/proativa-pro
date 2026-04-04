@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useSurveyData } from "@/hooks/useSurveyData";
 import { questions, sections } from "@/data/mockData";
-import { exportPDF } from "@/lib/pdfExport";
+import { exportCompanyPDF } from "@/lib/pdfExport";
 
 interface FormConfig {
   id: string;
