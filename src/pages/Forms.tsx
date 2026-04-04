@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,6 +7,9 @@ import { FileText, Plus, Trash2, Loader2, CheckCircle2, XCircle, Copy, Eye, Edit
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useSurveyData } from "@/hooks/useSurveyData";
+import { questions, sections } from "@/data/mockData";
+import { exportCompanyPDF } from "@/lib/pdfExport";
 
 interface FormConfig {
   id: string;
@@ -24,7 +28,9 @@ function generateSurveyLink(formId: string) {
 }
 
 export default function Forms() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const surveyData = useSurveyData();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -56,7 +62,6 @@ export default function Forms() {
   allConfigs.forEach(c => { if (c.cnpj && !companiesMap.has(c.cnpj)) companiesMap.set(c.cnpj, c.company_name); });
   const registeredCompanies = Array.from(companiesMap.entries()).map(([cnpj, name]) => ({ cnpj, name }));
 
-  // Count responses per config
   const { data: responseCounts = {} } = useQuery({
     queryKey: ["form-response-counts"],
     queryFn: async () => {
@@ -139,6 +144,38 @@ export default function Forms() {
     toast({ title: "Link copiado!" });
   };
 
+  const handleViewResponses = (configId: string) => {
+    navigate(`/respondentes?form=${configId}`);
+  };
+
+  const handleDownloadPDF = (config: FormConfig) => {
+    try {
+      const companyKey = config.cnpj || config.id;
+      const company = surveyData.companies.find(c => c.id === companyKey);
+      if (!company) { toast({ title: "Nenhum dado disponível para gerar PDF", variant: "destructive" }); return; }
+      
+      const companyRespondents = surveyData.getCompanyRespondents(companyKey);
+      if (companyRespondents.length === 0) { toast({ title: "Nenhuma resposta encontrada para este formulário", variant: "destructive" }); return; }
+
+      exportCompanyPDF(companyKey, {
+        companies: [company],
+        sections,
+        questions,
+        respondents: companyRespondents,
+        getCompanyRespondents: () => companyRespondents,
+        getSectionAverage: surveyData.getSectionAverage,
+        getQuestionAverage: surveyData.getQuestionAverage,
+        getAnswerDistribution: surveyData.getAnswerDistribution,
+        getAvailableSections: surveyData.getAvailableSections,
+        getAvailableQuestions: surveyData.getAvailableQuestions,
+        formConfigs: [{ configId: config.id, title: (config as any).form_title || config.company_name }],
+      });
+      toast({ title: "PDF gerado com sucesso!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar PDF", description: e.message, variant: "destructive" });
+    }
+  };
+
   const startEdit = (config: FormConfig) => {
     const cfg = config as any;
     setFormData({
@@ -184,7 +221,6 @@ export default function Forms() {
               <button onClick={resetForm} className="p-1 rounded text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
             </div>
 
-            {/* Informações do Formulário */}
             <div className="space-y-4">
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Informações do Formulário</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -216,7 +252,6 @@ export default function Forms() {
               </div>
             </div>
 
-            {/* Período */}
             <div className="space-y-4">
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Período</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -235,7 +270,6 @@ export default function Forms() {
               </div>
             </div>
 
-            {/* Configurações */}
             <div className="space-y-4">
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Configurações</h4>
               <div className="space-y-3">
@@ -250,10 +284,6 @@ export default function Forms() {
                 <div className="flex items-start gap-3 p-3 rounded-lg border border-border">
                   <Checkbox checked={formData.is_anonymous} onCheckedChange={(v) => setFormData({ ...formData, is_anonymous: !!v })} />
                   <div><p className="text-sm font-medium text-foreground">Pesquisa Anônima</p><p className="text-xs text-muted-foreground">Respostas não serão identificadas</p></div>
-                </div>
-                <div className="flex items-start gap-3 p-3 rounded-lg border border-border">
-                  <Checkbox checked={formData.require_cpf} onCheckedChange={(v) => setFormData({ ...formData, require_cpf: !!v })} />
-                  <div><p className="text-sm font-medium text-foreground">Exigir CPF para Identificação</p><p className="text-xs text-muted-foreground">Solicita CPF antes da pesquisa para evitar respostas duplicadas. Sem CPF, a sessão é salva apenas no navegador.</p></div>
                 </div>
                 <div className="flex items-start gap-3 p-3 rounded-lg border border-border">
                   <Checkbox checked={formData.require_consent} onCheckedChange={(v) => setFormData({ ...formData, require_consent: !!v })} />
@@ -276,7 +306,6 @@ export default function Forms() {
               </div>
             </div>
 
-            {/* Link da pesquisa (only when editing) */}
             {editingId && (
               <div className="space-y-2">
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link da Pesquisa</h4>
@@ -300,7 +329,6 @@ export default function Forms() {
           </div>
         )}
 
-        {/* Table */}
         {isLoading ? (
           <div className="flex items-center justify-center h-32"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
         ) : configs.length === 0 ? (
@@ -311,7 +339,6 @@ export default function Forms() {
           </div>
         ) : (
           <>
-            {/* Desktop table */}
             <div className="hidden md:block rounded-xl border border-border bg-card shadow-card overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
@@ -342,9 +369,9 @@ export default function Forms() {
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-1">
                             <button onClick={() => copyLink(config.id)} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Copiar link"><Copy className="h-3.5 w-3.5" /></button>
-                            <button className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Ver respostas"><Eye className="h-3.5 w-3.5" /></button>
+                            <button onClick={() => handleViewResponses(config.id)} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Ver respostas"><Eye className="h-3.5 w-3.5" /></button>
                             <button onClick={() => startEdit(config)} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Editar"><Edit2 className="h-3.5 w-3.5" /></button>
-                            <button className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Gerar PDF"><Download className="h-3.5 w-3.5" /></button>
+                            <button onClick={() => handleDownloadPDF(config)} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Gerar PDF"><Download className="h-3.5 w-3.5" /></button>
                             <button onClick={() => { if (confirm("Excluir formulário?")) deleteForm.mutate(config.id); }}
                               className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" title="Excluir"><Trash2 className="h-3.5 w-3.5" /></button>
                           </div>
@@ -356,7 +383,6 @@ export default function Forms() {
               </table>
             </div>
 
-            {/* Mobile cards */}
             <div className="md:hidden space-y-3">
               {configs.map(config => {
                 const status = getStatus(config);
@@ -378,6 +404,8 @@ export default function Forms() {
                     </div>
                     <div className="flex items-center gap-1 pt-1 border-t border-border">
                       <button onClick={() => copyLink(config.id)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Copy className="h-3 w-3" /> Copiar</button>
+                      <button onClick={() => handleViewResponses(config.id)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Eye className="h-3 w-3" /> Ver</button>
+                      <button onClick={() => handleDownloadPDF(config)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Download className="h-3 w-3" /> PDF</button>
                       <button onClick={() => startEdit(config)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Edit2 className="h-3 w-3" /> Editar</button>
                       <button onClick={() => { if (confirm("Excluir?")) deleteForm.mutate(config.id); }}
                         className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-destructive hover:bg-destructive/10 transition-colors"><Trash2 className="h-3 w-3" /> Excluir</button>

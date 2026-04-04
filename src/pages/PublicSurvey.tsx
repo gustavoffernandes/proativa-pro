@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 
 type Step = "welcome" | "consent" | "password" | "demographics" | "scale-0" | "scale-1" | "scale-2" | "scale-3" | "open" | "review" | "submitted";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 
 interface FormConfig {
   id: string;
@@ -31,10 +30,8 @@ interface Demographics {
   age: string;
   escolaridade: string;
   estado_civil: string;
-  cargo: string;
   tempo_empresa: string;
   sector: string;
-  ghe: string;
   respondent_name: string;
 }
 
@@ -50,15 +47,13 @@ export default function PublicSurvey() {
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState(false);
   const [demographics, setDemographics] = useState<Demographics>({
-    sex: "", age: "", escolaridade: "", estado_civil: "", cargo: "",
-    tempo_empresa: "", sector: "", ghe: "", respondent_name: "",
+    sex: "", age: "", escolaridade: "", estado_civil: "",
+    tempo_empresa: "", sector: "", respondent_name: "",
   });
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [openAnswers, setOpenAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [sectors, setSectors] = useState<string[]>([]);
-  const [cargos, setCargos] = useState<string[]>([]);
-  const [ghes, setGhes] = useState<string[]>([]);
 
   const scales = useMemo(() => getQuestionsByScale(), []);
   const totalQuestions = PROART_QUESTIONS.length;
@@ -81,17 +76,15 @@ export default function PublicSurvey() {
       if (cfg.start_date && new Date(cfg.start_date) > new Date()) { setError("Esta pesquisa ainda não começou"); setLoading(false); return; }
       setConfig(cfg);
 
-      // Load sectors/cargos/ghes from existing responses for this company
+      // Load sectors from existing responses for this company
       const { data: responses } = await supabase
         .from("survey_responses")
-        .select("sector, cargo, ghe")
+        .select("sector")
         .eq("config_id", id);
       if (responses) {
-        const s = new Set<string>(), c = new Set<string>(), g = new Set<string>();
-        responses.forEach((r: any) => { if (r.sector) s.add(r.sector); if (r.cargo) c.add(r.cargo); if (r.ghe) g.add(r.ghe); });
+        const s = new Set<string>();
+        responses.forEach((r: any) => { if (r.sector) s.add(r.sector); });
         setSectors(Array.from(s));
-        setCargos(Array.from(c));
-        setGhes(Array.from(g));
       }
 
       // Restore saved progress
@@ -135,9 +128,7 @@ export default function PublicSurvey() {
         sector: demographics.sector || null,
         escolaridade: demographics.escolaridade || null,
         estado_civil: demographics.estado_civil || null,
-        cargo: demographics.cargo || null,
         tempo_empresa: demographics.tempo_empresa || null,
-        ghe: demographics.ghe || null,
         answers: answers as any,
         open_answers: openAnswers as any,
         response_timestamp: new Date().toISOString(),
@@ -324,7 +315,7 @@ export default function PublicSurvey() {
           </div>
         )}
 
-        {/* Demographics */}
+        {/* Demographics - removed cargo and GHE fields */}
         {step === "demographics" && (
           <div className="space-y-6">
             <div>
@@ -353,10 +344,8 @@ export default function PublicSurvey() {
             <div>
               <h3 className="text-sm font-semibold text-gray-800 mb-3">Informações Profissionais</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <ComboField label="Cargo" value={demographics.cargo} onChange={v => setDemographics({ ...demographics, cargo: v })} suggestions={cargos} />
                 <SelectField label="Tempo na empresa" required value={demographics.tempo_empresa} onChange={v => setDemographics({ ...demographics, tempo_empresa: v })} options={DEMOGRAPHIC_OPTIONS.tempo_empresa} />
                 <ComboField label="Setor" required value={demographics.sector} onChange={v => setDemographics({ ...demographics, sector: v })} suggestions={sectors} />
-                <ComboField label="Grupo de Trabalho (GHE)" value={demographics.ghe} onChange={v => setDemographics({ ...demographics, ghe: v })} suggestions={ghes} />
               </div>
             </div>
           </div>
@@ -407,77 +396,61 @@ export default function PublicSurvey() {
         {step === "review" && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Revisão</h2>
-              <p className="text-sm text-gray-500">Confira suas respostas antes de enviar</p>
+              <h2 className="text-xl font-bold text-gray-900">Revisão Final</h2>
+              <p className="text-sm text-gray-500">Verifique suas respostas antes de enviar</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Questões respondidas</span>
-                <span className={cn("text-sm font-bold", answeredCount === totalQuestions ? "text-green-600" : "text-red-500")}>{answeredCount}/{totalQuestions}</span>
+                <span className="text-sm text-gray-600">Questões respondidas</span>
+                <span className="text-sm font-bold text-gray-900">{answeredCount} de {totalQuestions}</span>
               </div>
               <Progress value={progress} className="h-2" />
               {answeredCount < totalQuestions && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-xs text-red-700 font-medium">Você precisa responder todas as {totalQuestions} questões para enviar.</p>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {PROART_QUESTIONS.filter(q => answers[q.id] === undefined).map(q => (
-                      <button key={q.id} onClick={() => {
-                        const scaleIdx = scales.findIndex(s => s.id === q.scaleId);
-                        setStep(`scale-${scaleIdx}` as Step);
-                      }} className="px-2 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-medium hover:bg-red-200 transition">{q.number}</button>
-                    ))}
-                  </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <p className="text-xs text-amber-800 font-medium">⚠️ Você ainda tem {totalQuestions - answeredCount} questões pendentes.</p>
+                  <p className="text-xs text-amber-700 mt-1">Volte às etapas anteriores para completar.</p>
                 </div>
               )}
-            </div>
-
-            {scales.map((scale, idx) => {
-              const scaleAnswered = scale.questions.filter(q => answers[q.id] !== undefined).length;
-              const complete = scaleAnswered === scale.questions.length;
-              return (
-                <div key={scale.id} className={cn("rounded-xl border p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition",
-                  complete ? "border-green-200 bg-green-50/50" : "border-red-200 bg-red-50/50")}
-                  onClick={() => setStep(`scale-${idx}` as Step)}>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{scale.name}</p>
-                    <p className="text-xs text-gray-500">{scaleAnswered}/{scale.questions.length} questões</p>
+              {scales.map((scale, i) => {
+                const scaleAnswered = scale.questions.filter(q => answers[q.id] !== undefined).length;
+                const isComplete = scaleAnswered === scale.questions.length;
+                return (
+                  <div key={i} className="flex items-center justify-between py-2 border-t border-gray-100">
+                    <span className="text-sm text-gray-700">{scale.name}</span>
+                    <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full",
+                      isComplete ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700")}>
+                      {scaleAnswered}/{scale.questions.length}
+                    </span>
                   </div>
-                  {complete ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <AlertCircle className="h-5 w-5 text-red-400" />}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+            <button onClick={handleSubmit} disabled={submitting || answeredCount < totalQuestions}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 text-white py-3.5 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+              {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</> : <><CheckCircle2 className="h-4 w-4" /> Enviar Respostas</>}
+            </button>
           </div>
         )}
       </main>
 
-      {/* Bottom navigation */}
-      {(step as string) !== "submitted" && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-gray-200 px-4 py-3 z-50">
-          <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
-            {step !== "welcome" ? (
-              <button onClick={goPrev} className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
-                <ChevronLeft className="h-4 w-4" /> Voltar
-              </button>
-            ) : <div />}
-
-            {step === "review" ? (
-              <button onClick={handleSubmit} disabled={submitting || answeredCount < totalQuestions}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition">
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                Enviar Respostas
-              </button>
-            ) : (
-              <button onClick={() => {
-                if (step === "password" && passwordInput !== config?.survey_password) {
-                  setPasswordError(true);
-                  return;
-                }
-                goNext();
-              }} disabled={!canProceed()}
-                className="flex items-center gap-1 px-6 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition">
-                {step === "welcome" ? "Começar Pesquisa" : "Continuar"} <ChevronRight className="h-4 w-4" />
-              </button>
-            )}
+      {/* Navigation footer */}
+      {step !== "review" && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-40">
+          <div className="max-w-3xl mx-auto flex items-center justify-between">
+            <button onClick={goPrev} disabled={currentStepIdx === 0}
+              className="flex items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              <ChevronLeft className="h-4 w-4" /> Anterior
+            </button>
+            <button onClick={() => {
+              if (step === "password" && passwordInput !== config?.survey_password) {
+                setPasswordError(true);
+                return;
+              }
+              goNext();
+            }} disabled={!canProceed()}
+              className="flex items-center gap-1 rounded-xl bg-blue-600 text-white px-6 py-2.5 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+              Próximo <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
       )}
@@ -485,16 +458,14 @@ export default function PublicSurvey() {
   );
 }
 
-// ---- Sub-components ----
+// ====== Sub-components ======
 
-function SelectField({ label, value, onChange, options, required }: {
-  label: string; value: string; onChange: (v: string) => void; options: string[]; required?: boolean;
-}) {
+function SelectField({ label, value, onChange, options, required }: { label: string; value: string; onChange: (v: string) => void; options: string[]; required?: boolean }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs font-medium text-gray-700">{label} {required && <span className="text-red-500">*</span>}</label>
+      <label className="text-xs font-medium text-gray-700">{label}{required && " *"}</label>
       <select value={value} onChange={e => onChange(e.target.value)}
-        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+        className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
         <option value="">Selecione...</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
@@ -502,49 +473,32 @@ function SelectField({ label, value, onChange, options, required }: {
   );
 }
 
-function ComboField({ label, value, onChange, suggestions, required }: {
-  label: string; value: string; onChange: (v: string) => void; suggestions: string[]; required?: boolean;
-}) {
-  const [focused, setFocused] = useState(false);
-  const filtered = suggestions.filter(s => s.toLowerCase().includes(value.toLowerCase()));
+function ComboField({ label, value, onChange, suggestions, required }: { label: string; value: string; onChange: (v: string) => void; suggestions: string[]; required?: boolean }) {
   return (
-    <div className="space-y-1 relative">
-      <label className="text-xs font-medium text-gray-700">{label} {required && <span className="text-red-500">*</span>}</label>
-      <input value={value} onChange={e => onChange(e.target.value)}
-        onFocus={() => setFocused(true)} onBlur={() => setTimeout(() => setFocused(false), 200)}
-        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-        placeholder={`Selecione seu ${label.toLowerCase()}...`} />
-      {focused && filtered.length > 0 && (
-        <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-32 overflow-auto">
-          {filtered.map(s => (
-            <button key={s} onMouseDown={() => onChange(s)} className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition">{s}</button>
-          ))}
-        </div>
-      )}
+    <div className="space-y-1">
+      <label className="text-xs font-medium text-gray-700">{label}{required && " *"}</label>
+      <input list={`list-${label}`} value={value} onChange={e => onChange(e.target.value)}
+        className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite ou selecione..." />
+      <datalist id={`list-${label}`}>
+        {suggestions.map(s => <option key={s} value={s} />)}
+      </datalist>
     </div>
   );
 }
 
-function QuestionCard({ question, value, onChange }: {
-  question: { id: string; number: number; text: string }; value: number | undefined; onChange: (v: number) => void;
-}) {
+function QuestionCard({ question, value, onChange }: { question: { id: string; number: number; text: string }; value?: number; onChange: (v: number) => void }) {
   return (
-    <div className={cn("bg-white rounded-xl border p-4 transition-all",
-      value !== undefined ? "border-blue-200 shadow-sm" : "border-gray-200")}>
-      <div className="flex gap-3 mb-3">
-        <span className={cn("shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold",
-          value !== undefined ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-500")}>{question.number}</span>
-        <p className="text-sm text-gray-800 pt-1">{question.text}</p>
-      </div>
-      <div className="flex gap-1.5 sm:gap-2">
+    <div className={cn("rounded-xl border p-4 transition-all", value !== undefined ? "border-blue-200 bg-blue-50/30" : "border-gray-200 bg-white")}>
+      <p className="text-sm text-gray-800 mb-3"><span className="font-bold text-blue-600 mr-1">{question.number}.</span>{question.text}</p>
+      <div className="flex flex-wrap gap-2">
         {LIKERT_OPTIONS.map(opt => (
           <button key={opt.value} onClick={() => onChange(opt.value)}
-            className={cn("flex-1 flex flex-col items-center gap-0.5 rounded-lg py-2 px-1 text-center transition-all border",
+            className={cn("flex-1 min-w-[60px] rounded-lg px-2 py-2 text-center text-xs font-medium border transition-all",
               value === opt.value
-                ? "bg-blue-600 text-white border-blue-600 shadow-md scale-[1.02]"
-                : "bg-gray-50 text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-blue-50")}>
-            <span className="text-[10px] sm:text-xs font-medium leading-tight">{opt.label}</span>
-            <span className="text-[9px] sm:text-[10px] opacity-70">{opt.percent}</span>
+                ? "bg-blue-600 text-white border-blue-600 shadow-md scale-105"
+                : "bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-blue-50")}>
+            <span className="block text-sm font-bold">{opt.value}</span>
+            <span className="block text-[10px] leading-tight mt-0.5 opacity-80">{opt.label}</span>
           </button>
         ))}
       </div>
