@@ -157,7 +157,7 @@ export default function Forms() {
       const companyRespondents = surveyData.getCompanyRespondents(companyKey);
       if (companyRespondents.length === 0) { toast({ title: "Nenhuma resposta encontrada para este formulário", variant: "destructive" }); return; }
 
-      exportPDF({
+      exportCompanyPDF(companyKey, {
         companies: [company],
         sections,
         questions,
