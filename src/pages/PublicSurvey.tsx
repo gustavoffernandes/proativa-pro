@@ -3,9 +3,8 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PROART_QUESTIONS, OPEN_QUESTIONS, LIKERT_OPTIONS, DEMOGRAPHIC_OPTIONS, getQuestionsByScale } from "@/lib/proartQuestions";
-import { CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, Loader2, Lock, Save, Shield, AlertCircle } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, Loader2, Lock, Save, Shield, AlertCircle, User, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Progress } from "@/components/ui/progress";
 
 type Step = "welcome" | "consent" | "password" | "demographics" | "scale-0" | "scale-1" | "scale-2" | "scale-3" | "open" | "review" | "submitted";
 
@@ -61,7 +60,6 @@ export default function PublicSurvey() {
   const answeredCount = Object.keys(answers).length;
   const progress = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
 
-  // Load form config
   useEffect(() => {
     if (!id) { setError("Link inválido"); setLoading(false); return; }
     (async () => {
@@ -77,27 +75,17 @@ export default function PublicSurvey() {
       if (cfg.start_date && new Date(cfg.start_date) > new Date()) { setError("Esta pesquisa ainda não começou"); setLoading(false); return; }
       setConfig(cfg);
 
-      // Load sectors from config's sectors JSONB field
       const configSectors: string[] = [];
       if (Array.isArray((data as any).sectors)) {
         (data as any).sectors.forEach((s: any) => {
           if (s.name) configSectors.push(s.name);
         });
       }
-      // Also get sectors from existing responses as fallback
-      const { data: responses } = await supabase
-        .from("survey_responses")
-        .select("sector")
-        .eq("config_id", id);
-      if (responses) {
-        responses.forEach((r: any) => { if (r.sector) configSectors.push(r.sector); });
-      }
       setSectors([...new Set(configSectors)]);
 
-      // Create a survey session to track "in progress"
       const sessionToken = localStorage.getItem(STORAGE_KEY_PREFIX + id + "_token") || crypto.randomUUID();
       localStorage.setItem(STORAGE_KEY_PREFIX + id + "_token", sessionToken);
-      
+
       const { data: existingSession } = await (supabase.from("survey_sessions") as any)
         .select("id, status")
         .eq("config_id", id)
@@ -122,7 +110,6 @@ export default function PublicSurvey() {
         if (newSession) setSessionId(newSession.id);
       }
 
-      // Restore saved progress
       try {
         const saved = localStorage.getItem(STORAGE_KEY_PREFIX + id);
         if (saved) {
@@ -137,7 +124,6 @@ export default function PublicSurvey() {
     })();
   }, [id]);
 
-  // Auto-save progress
   useEffect(() => {
     if (!id || step === "submitted") return;
     const timeout = setTimeout(() => {
@@ -170,7 +156,6 @@ export default function PublicSurvey() {
       }] as any);
       if (err) throw err;
 
-      // Mark session as completed
       if (sessionId) {
         await (supabase.from("survey_sessions") as any)
           .update({ status: "completed", completed_at: new Date().toISOString() })
@@ -219,31 +204,44 @@ export default function PublicSurvey() {
     return true;
   };
 
+  // --- Color palette derived from dashboard tokens ---
+  const primaryHsl = "217 71% 45%";
+  const accentHsl = "170 60% 45%";
+
   if (loading) return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+    <div className="min-h-screen flex items-center justify-center" style={{ background: `linear-gradient(135deg, hsl(${primaryHsl} / 0.06) 0%, hsl(0 0% 100%) 50%, hsl(${accentHsl} / 0.06) 100%)` }}>
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: `hsl(${primaryHsl})` }}>
+          <Loader2 className="h-6 w-6 animate-spin text-white" />
+        </div>
+        <p className="text-sm font-medium" style={{ color: `hsl(220 30% 40%)` }}>Carregando pesquisa...</p>
+      </div>
     </div>
   );
 
   if (error) return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
-        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-        <h1 className="text-xl font-bold text-gray-900 mb-2">Pesquisa Indisponível</h1>
-        <p className="text-gray-600">{error}</p>
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: `linear-gradient(135deg, hsl(${primaryHsl} / 0.06) 0%, hsl(0 0% 100%) 50%, hsl(${accentHsl} / 0.06) 100%)` }}>
+      <div className="bg-white rounded-2xl p-8 max-w-md text-center" style={{ boxShadow: '0 20px 60px -15px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.04)' }}>
+        <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'hsl(0 72% 55% / 0.1)' }}>
+          <AlertCircle className="h-7 w-7" style={{ color: 'hsl(0 72% 55%)' }} />
+        </div>
+        <h1 className="text-xl font-bold mb-2" style={{ color: `hsl(220 30% 12%)` }}>Pesquisa Indisponível</h1>
+        <p className="text-sm" style={{ color: `hsl(220 10% 50%)` }}>{error}</p>
       </div>
     </div>
   );
 
   if (step === "submitted") return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="h-8 w-8 text-green-600" />
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: `linear-gradient(135deg, hsl(${primaryHsl} / 0.06) 0%, hsl(0 0% 100%) 50%, hsl(${accentHsl} / 0.06) 100%)` }}>
+      <div className="bg-white rounded-2xl p-8 max-w-md text-center" style={{ boxShadow: '0 20px 60px -15px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.04)' }}>
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: 'hsl(152 60% 42% / 0.12)' }}>
+          <CheckCircle2 className="h-8 w-8" style={{ color: 'hsl(152 60% 42%)' }} />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Obrigado!</h1>
-        <p className="text-gray-600 mb-4">Suas respostas foram enviadas com sucesso. Agradecemos sua participação.</p>
-        <p className="text-sm text-gray-400">Você já pode fechar esta página.</p>
+        <h1 className="text-2xl font-bold mb-2" style={{ color: `hsl(220 30% 12%)` }}>Obrigado!</h1>
+        <p className="text-sm mb-6" style={{ color: `hsl(220 10% 50%)` }}>Suas respostas foram enviadas com sucesso. Agradecemos sua participação nesta pesquisa.</p>
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium" style={{ background: 'hsl(152 60% 42% / 0.1)', color: 'hsl(152 60% 42%)' }}>
+          <Shield className="h-3.5 w-3.5" /> Dados protegidos pela LGPD
+        </div>
       </div>
     </div>
   );
@@ -252,71 +250,99 @@ export default function PublicSurvey() {
   const currentStepIdx = steps.indexOf(step);
   const totalSteps = steps.length;
 
+  const stepLabels: Record<string, string> = {
+    welcome: "Início",
+    consent: "Consentimento",
+    password: "Senha",
+    demographics: "Seus Dados",
+    "scale-0": scales[0]?.name || "Escala 1",
+    "scale-1": scales[1]?.name || "Escala 2",
+    "scale-2": scales[2]?.name || "Escala 3",
+    "scale-3": scales[3]?.name || "Escala 4",
+    open: "Percepção",
+    review: "Revisão",
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen" style={{ background: `linear-gradient(160deg, hsl(${primaryHsl} / 0.04) 0%, hsl(0 0% 99%) 40%, hsl(${accentHsl} / 0.04) 100%)` }}>
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200 px-4 py-3">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">P</div>
+      <header className="sticky top-0 z-50 backdrop-blur-xl border-b" style={{ background: 'hsla(0,0%,100%,0.92)', borderColor: 'hsl(220 15% 92%)' }}>
+        <div className="max-w-3xl mx-auto flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm" style={{ background: `hsl(${primaryHsl})` }}>P</div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">proativa</p>
-              <p className="text-[10px] text-gray-500">Avaliação de Riscos Psicossociais</p>
+              <p className="text-sm font-bold tracking-tight" style={{ color: `hsl(220 30% 12%)` }}>PROATIVA</p>
+              <p className="text-[10px] font-medium" style={{ color: `hsl(220 10% 50%)` }}>Avaliação de Riscos Psicossociais</p>
             </div>
           </div>
-          <span className="text-xs text-gray-500">{answeredCount} de {totalQuestions}</span>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: `hsl(${primaryHsl} / 0.08)`, color: `hsl(${primaryHsl})` }}>
+              <Save className="h-3 w-3" /> Auto-save
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: progress === 100 ? 'hsl(152 60% 42% / 0.1)' : 'hsl(220 15% 95%)', color: progress === 100 ? 'hsl(152 60% 42%)' : `hsl(220 10% 50%)` }}>
+              {answeredCount}/{totalQuestions}
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* Progress bar */}
+      {/* Step indicator */}
       {step !== "welcome" && (
-        <div className="bg-white border-b border-gray-100 px-4 py-2">
-          <div className="max-w-3xl mx-auto">
-            <Progress value={progress} className="h-1.5" />
-            <div className="flex justify-between mt-1">
-              <span className="text-[10px] text-gray-400">Etapa {currentStepIdx + 1} de {totalSteps}</span>
-              <span className="text-[10px] text-gray-400">{progress}% concluído</span>
+        <div className="border-b" style={{ borderColor: 'hsl(220 15% 95%)', background: 'hsl(0 0% 100%)' }}>
+          <div className="max-w-3xl mx-auto px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold" style={{ color: `hsl(${primaryHsl})` }}>{stepLabels[step] || step}</span>
+              <span className="text-xs font-medium" style={{ color: 'hsl(220 10% 55%)' }}>Etapa {currentStepIdx + 1} de {totalSteps}</span>
+            </div>
+            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'hsl(220 15% 93%)' }}>
+              <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%`, background: `linear-gradient(90deg, hsl(${primaryHsl}), hsl(${accentHsl}))` }} />
             </div>
           </div>
         </div>
       )}
 
       {/* Content */}
-      <main className="max-w-3xl mx-auto px-4 py-6 pb-32">
+      <main className="max-w-3xl mx-auto px-4 py-8 pb-28">
         {/* Welcome */}
         {step === "welcome" && (
-          <div className="text-center space-y-6">
-            <div className="w-20 h-20 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto">
-              <FileText className="h-10 w-10 text-blue-600" />
+          <div className="text-center space-y-8">
+            <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto" style={{ background: `linear-gradient(135deg, hsl(${primaryHsl}), hsl(${primaryHsl} / 0.8))`, boxShadow: `0 12px 40px -10px hsl(${primaryHsl} / 0.35)` }}>
+              <FileText className="h-10 w-10 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">{config?.form_title || "Avaliação PROART"}</h1>
-            <p className="text-gray-600">{config?.description || "Esta pesquisa avalia fatores de risco psicossocial no ambiente de trabalho. Suas respostas são anônimas e confidenciais."}</p>
-            <div className="flex justify-center gap-6">
-              <div className="text-center p-4 bg-white rounded-xl shadow-sm border border-gray-100">
-                <FileText className="h-5 w-5 text-blue-600 mx-auto mb-1" />
-                <p className="text-xl font-bold text-gray-900">91</p>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Questões</p>
-              </div>
-              <div className="text-center p-4 bg-white rounded-xl shadow-sm border border-gray-100">
-                <Clock className="h-5 w-5 text-blue-600 mx-auto mb-1" />
-                <p className="text-xl font-bold text-gray-900">15-20</p>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Minutos</p>
-              </div>
-              <div className="text-center p-4 bg-white rounded-xl shadow-sm border border-gray-100">
-                <Save className="h-5 w-5 text-blue-600 mx-auto mb-1" />
-                <p className="text-xl font-bold text-gray-900">Auto</p>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Salvamento</p>
-              </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2" style={{ color: 'hsl(220 30% 12%)' }}>{config?.form_title || "Avaliação PROART"}</h1>
+              <p className="text-sm max-w-md mx-auto" style={{ color: 'hsl(220 10% 50%)' }}>{config?.description || "Esta pesquisa avalia fatores de risco psicossocial no ambiente de trabalho."}</p>
+              {config?.company_name && (
+                <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold" style={{ background: `hsl(${primaryHsl} / 0.08)`, color: `hsl(${primaryHsl})` }}>
+                  <Briefcase className="h-3.5 w-3.5" /> {config.company_name}
+                </div>
+              )}
             </div>
+
+            <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
+              {[
+                { icon: FileText, value: "91", label: "Questões" },
+                { icon: Clock, value: "15-20", label: "Minutos" },
+                { icon: Save, value: "Auto", label: "Salvamento" },
+              ].map(({ icon: Icon, value, label }) => (
+                <div key={label} className="p-4 rounded-2xl border" style={{ background: 'hsl(0 0% 100%)', borderColor: 'hsl(220 15% 92%)', boxShadow: '0 2px 8px -2px rgba(0,0,0,0.06)' }}>
+                  <Icon className="h-5 w-5 mx-auto mb-2" style={{ color: `hsl(${primaryHsl})` }} />
+                  <p className="text-lg font-extrabold" style={{ color: 'hsl(220 30% 12%)' }}>{value}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mt-0.5" style={{ color: 'hsl(220 10% 55%)' }}>{label}</p>
+                </div>
+              ))}
+            </div>
+
             {config?.instructions && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-left">
-                <p className="text-sm font-semibold text-blue-800 mb-1 flex items-center gap-1"><AlertCircle className="h-4 w-4" /> Instruções</p>
-                <p className="text-sm text-blue-700">{config.instructions}</p>
+              <div className="rounded-2xl p-5 text-left" style={{ background: `hsl(${primaryHsl} / 0.05)`, border: `1px solid hsl(${primaryHsl} / 0.12)` }}>
+                <p className="text-sm font-bold flex items-center gap-2 mb-2" style={{ color: `hsl(${primaryHsl})` }}><AlertCircle className="h-4 w-4" /> Instruções</p>
+                <p className="text-sm leading-relaxed" style={{ color: 'hsl(220 20% 35%)' }}>{config.instructions}</p>
               </div>
             )}
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-left">
-              <p className="text-sm font-medium text-green-800 flex items-center gap-1"><Save className="h-4 w-4" /> Suas respostas são salvas automaticamente.</p>
-              <p className="text-xs text-green-700 mt-1">Se precisar interromper, você pode voltar depois e continuar de onde parou.</p>
+
+            <div className="rounded-2xl p-4 text-left" style={{ background: 'hsl(152 60% 42% / 0.06)', border: '1px solid hsl(152 60% 42% / 0.15)' }}>
+              <p className="text-sm font-semibold flex items-center gap-2" style={{ color: 'hsl(152 55% 32%)' }}><Save className="h-4 w-4" /> Suas respostas são salvas automaticamente</p>
+              <p className="text-xs mt-1" style={{ color: 'hsl(152 30% 40%)' }}>Se precisar interromper, você pode voltar depois e continuar de onde parou.</p>
             </div>
           </div>
         )}
@@ -324,8 +350,8 @@ export default function PublicSurvey() {
         {/* Consent */}
         {step === "consent" && (
           <div className="space-y-6">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2"><Shield className="h-5 w-5 text-blue-600" /> Termo de Consentimento</h2>
-            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4 text-sm text-gray-700">
+            <SectionHeader icon={Shield} title="Termo de Consentimento" subtitle="Leia atentamente antes de prosseguir" primaryHsl={primaryHsl} />
+            <div className="rounded-2xl border p-6 space-y-4 text-sm leading-relaxed" style={{ background: 'hsl(0 0% 100%)', borderColor: 'hsl(220 15% 92%)', color: 'hsl(220 15% 35%)' }}>
               <p>De acordo com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018), informamos que:</p>
               <ul className="list-disc pl-5 space-y-2">
                 <li>Seus dados serão utilizados exclusivamente para fins de pesquisa organizacional</li>
@@ -335,10 +361,10 @@ export default function PublicSurvey() {
                 <li>Os dados serão armazenados de forma segura e por tempo determinado</li>
               </ul>
             </div>
-            <label className="flex items-start gap-3 p-4 bg-white rounded-xl border border-gray-200 cursor-pointer hover:border-blue-300 transition-colors">
+            <label className="flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition-all" style={{ background: consentAccepted ? `hsl(${primaryHsl} / 0.04)` : 'hsl(0 0% 100%)', borderColor: consentAccepted ? `hsl(${primaryHsl} / 0.3)` : 'hsl(220 15% 90%)' }}>
               <input type="checkbox" checked={consentAccepted} onChange={e => setConsentAccepted(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-              <span className="text-sm text-gray-700">Li e concordo com os termos acima e autorizo o tratamento dos meus dados para os fins descritos.</span>
+                className="mt-0.5 h-4 w-4 rounded" style={{ accentColor: `hsl(${primaryHsl})` }} />
+              <span className="text-sm" style={{ color: 'hsl(220 15% 30%)' }}>Li e concordo com os termos acima e autorizo o tratamento dos meus dados para os fins descritos.</span>
             </label>
           </div>
         )}
@@ -346,52 +372,53 @@ export default function PublicSurvey() {
         {/* Password */}
         {step === "password" && (
           <div className="space-y-6">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2"><Lock className="h-5 w-5 text-blue-600" /> Acesso Protegido</h2>
-            <p className="text-sm text-gray-600">Esta pesquisa é protegida por senha. Solicite a senha ao responsável.</p>
-            <div className="space-y-2">
+            <SectionHeader icon={Lock} title="Acesso Protegido" subtitle="Esta pesquisa é protegida por senha" primaryHsl={primaryHsl} />
+            <div className="rounded-2xl border p-6" style={{ background: 'hsl(0 0% 100%)', borderColor: 'hsl(220 15% 92%)' }}>
+              <label className="text-xs font-semibold block mb-2" style={{ color: 'hsl(220 15% 40%)' }}>Senha de Acesso</label>
               <input type="password" value={passwordInput}
                 onChange={e => { setPasswordInput(e.target.value); setPasswordError(false); }}
-                placeholder="Digite a senha"
-                className={cn("w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 transition",
-                  passwordError ? "border-red-300 focus:ring-red-500" : "border-gray-200 focus:ring-blue-500")} />
-              {passwordError && <p className="text-xs text-red-500">Senha incorreta</p>}
+                placeholder="Digite a senha fornecida"
+                className={cn("w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-all")}
+                style={{ borderColor: passwordError ? 'hsl(0 72% 55%)' : 'hsl(220 15% 90%)', background: 'hsl(220 20% 98%)' }} />
+              {passwordError && <p className="text-xs mt-2 font-medium" style={{ color: 'hsl(0 72% 55%)' }}>Senha incorreta. Tente novamente.</p>}
             </div>
           </div>
         )}
 
-        {/* Demographics - removed cargo and GHE fields */}
+        {/* Demographics */}
         {step === "demographics" && (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Seus Dados</h2>
-              <p className="text-sm text-gray-500 mt-1">Informações para identificação e análise</p>
-            </div>
+            <SectionHeader icon={User} title="Seus Dados" subtitle="Informações para análise demográfica" primaryHsl={primaryHsl} />
 
             {!config?.is_anonymous && (
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700">Nome Completo</label>
-                <input value={demographics.respondent_name} onChange={e => setDemographics({ ...demographics, respondent_name: e.target.value })}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Seu nome" />
-              </div>
+              <FormCard>
+                <FieldLabel label="Nome Completo" />
+                <StyledInput value={demographics.respondent_name} onChange={v => setDemographics({ ...demographics, respondent_name: v })} placeholder="Seu nome completo" />
+              </FormCard>
             )}
 
-            <div>
-              <h3 className="text-sm font-semibold text-gray-800 mb-3">Informações Pessoais</h3>
+            <FormCard title="Informações Pessoais" icon={User}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <SelectField label="Gênero" required value={demographics.sex} onChange={v => setDemographics({ ...demographics, sex: v })} options={DEMOGRAPHIC_OPTIONS.genero} />
-                <SelectField label="Faixa Etária" required value={demographics.age} onChange={v => setDemographics({ ...demographics, age: v })} options={DEMOGRAPHIC_OPTIONS.faixa_etaria} />
-                <SelectField label="Escolaridade" required value={demographics.escolaridade} onChange={v => setDemographics({ ...demographics, escolaridade: v })} options={DEMOGRAPHIC_OPTIONS.escolaridade} />
-                <SelectField label="Estado Civil" value={demographics.estado_civil} onChange={v => setDemographics({ ...demographics, estado_civil: v })} options={DEMOGRAPHIC_OPTIONS.estado_civil} />
+                <StyledSelect label="Gênero" required value={demographics.sex} onChange={v => setDemographics({ ...demographics, sex: v })} options={DEMOGRAPHIC_OPTIONS.genero} />
+                <StyledSelect label="Faixa Etária" required value={demographics.age} onChange={v => setDemographics({ ...demographics, age: v })} options={DEMOGRAPHIC_OPTIONS.faixa_etaria} />
+                <StyledSelect label="Escolaridade" required value={demographics.escolaridade} onChange={v => setDemographics({ ...demographics, escolaridade: v })} options={DEMOGRAPHIC_OPTIONS.escolaridade} />
+                <StyledSelect label="Estado Civil" value={demographics.estado_civil} onChange={v => setDemographics({ ...demographics, estado_civil: v })} options={DEMOGRAPHIC_OPTIONS.estado_civil} />
               </div>
-            </div>
+            </FormCard>
 
-            <div>
-              <h3 className="text-sm font-semibold text-gray-800 mb-3">Informações Profissionais</h3>
+            <FormCard title="Informações Profissionais" icon={Briefcase}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <SelectField label="Tempo na empresa" required value={demographics.tempo_empresa} onChange={v => setDemographics({ ...demographics, tempo_empresa: v })} options={DEMOGRAPHIC_OPTIONS.tempo_empresa} />
-                <ComboField label="Setor" required value={demographics.sector} onChange={v => setDemographics({ ...demographics, sector: v })} suggestions={sectors} />
+                <StyledSelect label="Tempo na Empresa" required value={demographics.tempo_empresa} onChange={v => setDemographics({ ...demographics, tempo_empresa: v })} options={DEMOGRAPHIC_OPTIONS.tempo_empresa} />
+                {sectors.length > 0 ? (
+                  <StyledSelect label="Setor" required value={demographics.sector} onChange={v => setDemographics({ ...demographics, sector: v })} options={sectors} />
+                ) : (
+                  <div className="space-y-1.5">
+                    <FieldLabel label="Setor" required />
+                    <StyledInput value={demographics.sector} onChange={v => setDemographics({ ...demographics, sector: v })} placeholder="Digite seu setor" />
+                  </div>
+                )}
               </div>
-            </div>
+            </FormCard>
           </div>
         )}
 
@@ -401,15 +428,35 @@ export default function PublicSurvey() {
           const scale = scales[scaleIdx];
           const scaleAnswered = scale.questions.filter(q => answers[q.id] !== undefined).length;
           return (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">{scale.name}</h2>
-                <p className="text-sm text-gray-500">{scale.fullName}</p>
-                <p className="text-xs text-gray-400 mt-1">{scaleAnswered} de {scale.questions.length} questões respondidas</p>
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ background: `hsl(${primaryHsl})` }}>{scaleIdx + 1}</div>
+                  <div>
+                    <h2 className="text-lg font-bold" style={{ color: 'hsl(220 30% 12%)' }}>{scale.name}</h2>
+                    <p className="text-xs" style={{ color: 'hsl(220 10% 55%)' }}>{scale.fullName}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'hsl(220 15% 93%)' }}>
+                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${(scaleAnswered / scale.questions.length) * 100}%`, background: scaleAnswered === scale.questions.length ? 'hsl(152 60% 42%)' : `hsl(${primaryHsl})` }} />
+                  </div>
+                  <span className="text-xs font-semibold tabular-nums" style={{ color: scaleAnswered === scale.questions.length ? 'hsl(152 60% 42%)' : 'hsl(220 10% 55%)' }}>{scaleAnswered}/{scale.questions.length}</span>
+                </div>
               </div>
-              <div className="space-y-4">
+
+              {/* Likert legend */}
+              <div className="rounded-xl p-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1" style={{ background: 'hsl(220 20% 97%)', border: '1px solid hsl(220 15% 93%)' }}>
+                {LIKERT_OPTIONS.map(opt => (
+                  <span key={opt.value} className="text-[11px] font-medium" style={{ color: 'hsl(220 15% 40%)' }}>
+                    <strong className="font-bold" style={{ color: `hsl(${primaryHsl})` }}>{opt.value}</strong> = {opt.label}
+                  </span>
+                ))}
+              </div>
+
+              <div className="space-y-3">
                 {scale.questions.map(q => (
-                  <QuestionCard key={q.id} question={q} value={answers[q.id]} onChange={v => setAnswer(q.id, v)} />
+                  <QuestionCard key={q.id} question={q} value={answers[q.id]} onChange={v => setAnswer(q.id, v)} primaryHsl={primaryHsl} accentHsl={accentHsl} />
                 ))}
               </div>
             </div>
@@ -418,19 +465,20 @@ export default function PublicSurvey() {
 
         {/* Open questions */}
         {step === "open" && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Sua Percepção</h2>
-              <p className="text-sm text-gray-500">Respostas livres (opcional, mas muito valiosas)</p>
-            </div>
+          <div className="space-y-5">
+            <SectionHeader icon={FileText} title="Sua Percepção" subtitle="Respostas livres (opcional, mas muito valiosas)" primaryHsl={primaryHsl} />
             {OPEN_QUESTIONS.map((q, i) => (
-              <div key={q.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
-                <p className="text-sm font-medium text-gray-800">{i + 1}. {q.text}</p>
-                {q.hint && <p className="text-xs text-gray-400">{q.hint}</p>}
+              <div key={q.id} className="rounded-2xl border p-5 space-y-3" style={{ background: 'hsl(0 0% 100%)', borderColor: 'hsl(220 15% 92%)' }}>
+                <p className="text-sm font-semibold" style={{ color: 'hsl(220 30% 15%)' }}>
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white mr-2" style={{ background: `hsl(${primaryHsl})` }}>{i + 1}</span>
+                  {q.text}
+                </p>
+                {q.hint && <p className="text-xs pl-8" style={{ color: 'hsl(220 10% 55%)' }}>{q.hint}</p>}
                 <textarea value={openAnswers[q.id] || ""}
                   onChange={e => setOpenAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px] resize-y"
-                  placeholder="Digite sua resposta..." />
+                  className="w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 min-h-[100px] resize-y transition-all"
+                  style={{ borderColor: 'hsl(220 15% 90%)', background: 'hsl(220 20% 98%)' }}
+                  placeholder="Compartilhe sua perspectiva..." />
               </div>
             ))}
           </div>
@@ -439,38 +487,39 @@ export default function PublicSurvey() {
         {/* Review */}
         {step === "review" && (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Revisão Final</h2>
-              <p className="text-sm text-gray-500">Verifique suas respostas antes de enviar</p>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+            <SectionHeader icon={CheckCircle2} title="Revisão Final" subtitle="Verifique suas respostas antes de enviar" primaryHsl={primaryHsl} />
+            <div className="rounded-2xl border p-6 space-y-5" style={{ background: 'hsl(0 0% 100%)', borderColor: 'hsl(220 15% 92%)' }}>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Questões respondidas</span>
-                <span className="text-sm font-bold text-gray-900">{answeredCount} de {totalQuestions}</span>
+                <span className="text-sm font-medium" style={{ color: 'hsl(220 10% 45%)' }}>Questões respondidas</span>
+                <span className="text-lg font-extrabold" style={{ color: 'hsl(220 30% 12%)' }}>{answeredCount}/{totalQuestions}</span>
               </div>
-              <Progress value={progress} className="h-2" />
+              <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'hsl(220 15% 93%)' }}>
+                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, background: progress === 100 ? 'hsl(152 60% 42%)' : `linear-gradient(90deg, hsl(${primaryHsl}), hsl(${accentHsl}))` }} />
+              </div>
               {answeredCount < totalQuestions && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                  <p className="text-xs text-amber-800 font-medium">⚠️ Você ainda tem {totalQuestions - answeredCount} questões pendentes.</p>
-                  <p className="text-xs text-amber-700 mt-1">Volte às etapas anteriores para completar.</p>
+                <div className="rounded-xl p-3" style={{ background: 'hsl(38 92% 55% / 0.08)', border: '1px solid hsl(38 92% 55% / 0.2)' }}>
+                  <p className="text-xs font-semibold" style={{ color: 'hsl(38 70% 35%)' }}>⚠️ Faltam {totalQuestions - answeredCount} questões para completar.</p>
                 </div>
               )}
-              {scales.map((scale, i) => {
-                const scaleAnswered = scale.questions.filter(q => answers[q.id] !== undefined).length;
-                const isComplete = scaleAnswered === scale.questions.length;
-                return (
-                  <div key={i} className="flex items-center justify-between py-2 border-t border-gray-100">
-                    <span className="text-sm text-gray-700">{scale.name}</span>
-                    <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full",
-                      isComplete ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700")}>
-                      {scaleAnswered}/{scale.questions.length}
-                    </span>
-                  </div>
-                );
-              })}
+              <div className="space-y-1">
+                {scales.map((scale, i) => {
+                  const scaleAnswered = scale.questions.filter(q => answers[q.id] !== undefined).length;
+                  const isComplete = scaleAnswered === scale.questions.length;
+                  return (
+                    <div key={i} className="flex items-center justify-between py-2.5 border-t" style={{ borderColor: 'hsl(220 15% 95%)' }}>
+                      <span className="text-sm font-medium" style={{ color: 'hsl(220 15% 30%)' }}>{scale.name}</span>
+                      <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full")}
+                        style={{ background: isComplete ? 'hsl(152 60% 42% / 0.1)' : 'hsl(38 92% 55% / 0.1)', color: isComplete ? 'hsl(152 55% 32%)' : 'hsl(38 70% 35%)' }}>
+                        {scaleAnswered}/{scale.questions.length}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
             <button onClick={handleSubmit} disabled={submitting || answeredCount < totalQuestions}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 text-white py-3.5 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+              className="w-full flex items-center justify-center gap-2 rounded-2xl text-white py-4 text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: answeredCount >= totalQuestions ? `linear-gradient(135deg, hsl(${primaryHsl}), hsl(${primaryHsl} / 0.85))` : 'hsl(220 15% 70%)', boxShadow: answeredCount >= totalQuestions ? `0 8px 30px -8px hsl(${primaryHsl} / 0.4)` : 'none' }}>
               {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</> : <><CheckCircle2 className="h-4 w-4" /> Enviar Respostas</>}
             </button>
           </div>
@@ -479,10 +528,11 @@ export default function PublicSurvey() {
 
       {/* Navigation footer */}
       {step !== "review" && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-40">
-          <div className="max-w-3xl mx-auto flex items-center justify-between">
+        <div className="fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl border-t" style={{ background: 'hsla(0,0%,100%,0.92)', borderColor: 'hsl(220 15% 92%)' }}>
+          <div className="max-w-3xl mx-auto flex items-center justify-between px-4 py-3">
             <button onClick={goPrev} disabled={currentStepIdx === 0}
-              className="flex items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              className="flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+              style={{ color: 'hsl(220 15% 40%)', background: 'hsl(220 15% 95%)' }}>
               <ChevronLeft className="h-4 w-4" /> Anterior
             </button>
             <button onClick={() => {
@@ -492,7 +542,8 @@ export default function PublicSurvey() {
               }
               goNext();
             }} disabled={!canProceed()}
-              className="flex items-center gap-1 rounded-xl bg-blue-600 text-white px-6 py-2.5 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+              className="flex items-center gap-1.5 rounded-xl text-white px-6 py-2.5 text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: `hsl(${primaryHsl})`, boxShadow: `0 4px 14px -4px hsl(${primaryHsl} / 0.4)` }}>
               Próximo <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -504,12 +555,53 @@ export default function PublicSurvey() {
 
 // ====== Sub-components ======
 
-function SelectField({ label, value, onChange, options, required }: { label: string; value: string; onChange: (v: string) => void; options: string[]; required?: boolean }) {
+function SectionHeader({ icon: Icon, title, subtitle, primaryHsl }: { icon: any; title: string; subtitle: string; primaryHsl: string }) {
   return (
-    <div className="space-y-1">
-      <label className="text-xs font-medium text-gray-700">{label}{required && " *"}</label>
+    <div className="flex items-start gap-3">
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `hsl(${primaryHsl} / 0.1)` }}>
+        <Icon className="h-5 w-5" style={{ color: `hsl(${primaryHsl})` }} />
+      </div>
+      <div>
+        <h2 className="text-xl font-bold" style={{ color: 'hsl(220 30% 12%)' }}>{title}</h2>
+        <p className="text-sm mt-0.5" style={{ color: 'hsl(220 10% 55%)' }}>{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+function FormCard({ title, icon: Icon, children }: { title?: string; icon?: any; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border p-5 space-y-4" style={{ background: 'hsl(0 0% 100%)', borderColor: 'hsl(220 15% 92%)' }}>
+      {title && (
+        <div className="flex items-center gap-2 pb-3 border-b" style={{ borderColor: 'hsl(220 15% 95%)' }}>
+          {Icon && <Icon className="h-4 w-4" style={{ color: 'hsl(217 71% 45%)' }} />}
+          <h3 className="text-sm font-bold" style={{ color: 'hsl(220 30% 15%)' }}>{title}</h3>
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function FieldLabel({ label, required }: { label: string; required?: boolean }) {
+  return <label className="text-xs font-semibold block" style={{ color: 'hsl(220 15% 40%)' }}>{label}{required && <span style={{ color: 'hsl(0 72% 55%)' }}> *</span>}</label>;
+}
+
+function StyledInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition-all"
+      style={{ borderColor: 'hsl(220 15% 90%)', background: 'hsl(220 20% 98%)', color: 'hsl(220 30% 12%)' }} />
+  );
+}
+
+function StyledSelect({ label, value, onChange, options, required }: { label: string; value: string; onChange: (v: string) => void; options: string[]; required?: boolean }) {
+  return (
+    <div className="space-y-1.5">
+      <FieldLabel label={label} required={required} />
       <select value={value} onChange={e => onChange(e.target.value)}
-        className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+        className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 appearance-none transition-all"
+        style={{ borderColor: 'hsl(220 15% 90%)', background: 'hsl(220 20% 98%)', color: value ? 'hsl(220 30% 12%)' : 'hsl(220 10% 60%)' }}>
         <option value="">Selecione...</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
@@ -517,34 +609,33 @@ function SelectField({ label, value, onChange, options, required }: { label: str
   );
 }
 
-function ComboField({ label, value, onChange, suggestions, required }: { label: string; value: string; onChange: (v: string) => void; suggestions: string[]; required?: boolean }) {
+function QuestionCard({ question, value, onChange, primaryHsl, accentHsl }: { question: { id: string; number: number; text: string }; value?: number; onChange: (v: number) => void; primaryHsl: string; accentHsl: string }) {
+  const isAnswered = value !== undefined;
   return (
-    <div className="space-y-1">
-      <label className="text-xs font-medium text-gray-700">{label}{required && " *"}</label>
-      <input list={`list-${label}`} value={value} onChange={e => onChange(e.target.value)}
-        className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Digite ou selecione..." />
-      <datalist id={`list-${label}`}>
-        {suggestions.map(s => <option key={s} value={s} />)}
-      </datalist>
-    </div>
-  );
-}
-
-function QuestionCard({ question, value, onChange }: { question: { id: string; number: number; text: string }; value?: number; onChange: (v: number) => void }) {
-  return (
-    <div className={cn("rounded-xl border p-4 transition-all", value !== undefined ? "border-blue-200 bg-blue-50/30" : "border-gray-200 bg-white")}>
-      <p className="text-sm text-gray-800 mb-3"><span className="font-bold text-blue-600 mr-1">{question.number}.</span>{question.text}</p>
+    <div className="rounded-2xl border p-4 transition-all duration-200"
+      style={{ background: isAnswered ? `hsl(${primaryHsl} / 0.03)` : 'hsl(0 0% 100%)', borderColor: isAnswered ? `hsl(${primaryHsl} / 0.2)` : 'hsl(220 15% 92%)' }}>
+      <p className="text-sm mb-3" style={{ color: 'hsl(220 25% 18%)' }}>
+        <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs font-bold text-white mr-2" style={{ background: isAnswered ? `hsl(${accentHsl})` : `hsl(${primaryHsl} / 0.6)` }}>{question.number}</span>
+        {question.text}
+      </p>
       <div className="flex flex-wrap gap-2">
-        {LIKERT_OPTIONS.map(opt => (
-          <button key={opt.value} onClick={() => onChange(opt.value)}
-            className={cn("flex-1 min-w-[60px] rounded-lg px-2 py-2 text-center text-xs font-medium border transition-all",
-              value === opt.value
-                ? "bg-blue-600 text-white border-blue-600 shadow-md scale-105"
-                : "bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-blue-50")}>
-            <span className="block text-sm font-bold">{opt.value}</span>
-            <span className="block text-[10px] leading-tight mt-0.5 opacity-80">{opt.label}</span>
-          </button>
-        ))}
+        {LIKERT_OPTIONS.map(opt => {
+          const isSelected = value === opt.value;
+          return (
+            <button key={opt.value} onClick={() => onChange(opt.value)}
+              className="flex-1 min-w-[56px] rounded-xl px-2 py-2 text-center transition-all duration-200 border"
+              style={{
+                background: isSelected ? `hsl(${primaryHsl})` : 'hsl(220 20% 98%)',
+                color: isSelected ? 'white' : 'hsl(220 15% 40%)',
+                borderColor: isSelected ? `hsl(${primaryHsl})` : 'hsl(220 15% 90%)',
+                boxShadow: isSelected ? `0 4px 12px -4px hsl(${primaryHsl} / 0.35)` : 'none',
+                transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+              }}>
+              <span className="block text-sm font-extrabold">{opt.value}</span>
+              <span className="block text-[9px] leading-tight mt-0.5 opacity-80 font-medium">{opt.label}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
