@@ -11,37 +11,37 @@ const menuGroups = [
   {
     label: "Análise",
     items: [
-      { path: "/", label: "Visão Geral", icon: LayoutDashboard, adminOnly: false, hideForCompanyUser: false },
-      { path: "/analise", label: "Análise por Pergunta", icon: BarChart3, adminOnly: false, hideForCompanyUser: false },
-      { path: "/empresas", label: "Comparação Empresas", icon: Building2, adminOnly: false, hideForCompanyUser: true },
-      { path: "/demografico", label: "Perfil Demográfico", icon: Users, adminOnly: false, hideForCompanyUser: false },
-      { path: "/heatmap", label: "Heatmap Satisfação", icon: FileText, adminOnly: false, hideForCompanyUser: false },
-      { path: "/evolucao", label: "Evolução Temporal", icon: TrendingUp, adminOnly: false, hideForCompanyUser: false },
+      { path: "/", label: "Visão Geral", icon: LayoutDashboard, adminOnly: false, hideForCompanyUser: false, onboardingId: "menu-visao-geral" },
+      { path: "/analise", label: "Análise por Pergunta", icon: BarChart3, adminOnly: false, hideForCompanyUser: false, onboardingId: "menu-analise" },
+      { path: "/empresas", label: "Comparação Empresas", icon: Building2, adminOnly: false, hideForCompanyUser: true, onboardingId: "menu-empresas" },
+      { path: "/demografico", label: "Perfil Demográfico", icon: Users, adminOnly: false, hideForCompanyUser: false, onboardingId: "menu-demografico" },
+      { path: "/heatmap", label: "Heatmap Satisfação", icon: FileText, adminOnly: false, hideForCompanyUser: false, onboardingId: "menu-heatmap" },
+      { path: "/evolucao", label: "Evolução Temporal", icon: TrendingUp, adminOnly: false, hideForCompanyUser: false, onboardingId: "menu-evolucao" },
     ],
   },
   {
     label: "Resultados",
     items: [
-      { path: "/relatorios", label: "Relatórios", icon: Download, adminOnly: false, hideForCompanyUser: false },
-      { path: "/plano-acao", label: "Plano de Ação", icon: ClipboardList, adminOnly: false, hideForCompanyUser: false },
-      { path: "/notas", label: "Bloco de Notas", icon: StickyNote, adminOnly: false, hideForCompanyUser: true },
+      { path: "/relatorios", label: "Relatórios", icon: Download, adminOnly: false, hideForCompanyUser: false, onboardingId: "menu-relatorios" },
+      { path: "/plano-acao", label: "Plano de Ação", icon: ClipboardList, adminOnly: false, hideForCompanyUser: false, onboardingId: "menu-plano-acao" },
+      { path: "/notas", label: "Bloco de Notas", icon: StickyNote, adminOnly: false, hideForCompanyUser: true, onboardingId: "menu-notas" },
     ],
   },
   {
     label: "Cadastros",
     items: [
-      { path: "/empresas-cadastro", label: "Empresas", icon: Briefcase, adminOnly: true, hideForCompanyUser: false },
-      { path: "/formularios", label: "Formulários", icon: FileCheck, adminOnly: true, hideForCompanyUser: false },
-      { path: "/respondentes", label: "Respondentes", icon: UserCheck, adminOnly: true, hideForCompanyUser: false },
-      { path: "/usuarios", label: "Usuários", icon: Users, adminOnly: true, hideForCompanyUser: false },
+      { path: "/empresas-cadastro", label: "Empresas", icon: Briefcase, adminOnly: true, hideForCompanyUser: false, onboardingId: "menu-empresas-cadastro" },
+      { path: "/formularios", label: "Formulários", icon: FileCheck, adminOnly: true, hideForCompanyUser: false, onboardingId: "menu-integracoes" },
+      { path: "/respondentes", label: "Respondentes", icon: UserCheck, adminOnly: true, hideForCompanyUser: false, onboardingId: "" },
+      { path: "/usuarios", label: "Usuários", icon: Users, adminOnly: true, hideForCompanyUser: false, onboardingId: "" },
     ],
   },
 ];
 
 const bottomItems = [
-  { path: "/assinatura", label: "Assinatura", icon: Crown },
-  { path: "/configuracoes", label: "Configurações", icon: Settings },
-  { path: "/ajuda", label: "Ajuda", icon: HelpCircle },
+  { path: "/assinatura", label: "Assinatura", icon: Crown, onboardingId: "" },
+  { path: "/configuracoes", label: "Configurações", icon: Settings, onboardingId: "menu-configuracoes" },
+  { path: "/ajuda", label: "Ajuda", icon: HelpCircle, onboardingId: "" },
 ];
 
 interface SidebarProps {
@@ -70,7 +70,7 @@ export function ProativaSidebar({ collapsed, setCollapsed, mobileOpen, setMobile
         "md:z-40",
         collapsed ? "md:w-[72px]" : "md:w-[260px]"
       )}>
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4" data-onboarding="sidebar-logo">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary">
               <BarChart3 className="h-5 w-5 text-sidebar-primary-foreground" />
@@ -102,6 +102,7 @@ export function ProativaSidebar({ collapsed, setCollapsed, mobileOpen, setMobile
                   const isActive = location.pathname === item.path;
                   return (
                     <NavLink key={item.path} to={item.path} onClick={handleNavClick}
+                      {...(item.onboardingId ? { "data-onboarding": item.onboardingId } : {})}
                       className={cn("group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
                         isActive ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground")}>
                       {isActive && <div className="absolute -left-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-sidebar-ring" />}
@@ -123,6 +124,7 @@ export function ProativaSidebar({ collapsed, setCollapsed, mobileOpen, setMobile
           )}
           {bottomItems.map(item => (
             <NavLink key={item.path} to={item.path} onClick={handleNavClick}
+              {...(item.onboardingId ? { "data-onboarding": item.onboardingId } : {})}
               className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
                 location.pathname === item.path
                   ? "bg-sidebar-primary text-sidebar-primary-foreground"

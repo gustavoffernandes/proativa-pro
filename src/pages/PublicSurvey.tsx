@@ -54,6 +54,7 @@ export default function PublicSurvey() {
   const [openAnswers, setOpenAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [sectors, setSectors] = useState<string[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   const scales = useMemo(() => getQuestionsByScale(), []);
   const totalQuestions = PROART_QUESTIONS.length;
@@ -76,15 +77,49 @@ export default function PublicSurvey() {
       if (cfg.start_date && new Date(cfg.start_date) > new Date()) { setError("Esta pesquisa ainda não começou"); setLoading(false); return; }
       setConfig(cfg);
 
-      // Load sectors from existing responses for this company
+      // Load sectors from config's sectors JSONB field
+      const configSectors: string[] = [];
+      if (Array.isArray((data as any).sectors)) {
+        (data as any).sectors.forEach((s: any) => {
+          if (s.name) configSectors.push(s.name);
+        });
+      }
+      // Also get sectors from existing responses as fallback
       const { data: responses } = await supabase
         .from("survey_responses")
         .select("sector")
         .eq("config_id", id);
       if (responses) {
-        const s = new Set<string>();
-        responses.forEach((r: any) => { if (r.sector) s.add(r.sector); });
-        setSectors(Array.from(s));
+        responses.forEach((r: any) => { if (r.sector) configSectors.push(r.sector); });
+      }
+      setSectors([...new Set(configSectors)]);
+
+      // Create a survey session to track "in progress"
+      const sessionToken = localStorage.getItem(STORAGE_KEY_PREFIX + id + "_token") || crypto.randomUUID();
+      localStorage.setItem(STORAGE_KEY_PREFIX + id + "_token", sessionToken);
+      
+      const { data: existingSession } = await (supabase.from("survey_sessions") as any)
+        .select("id, status")
+        .eq("config_id", id)
+        .eq("session_token", sessionToken)
+        .maybeSingle();
+
+      if (existingSession) {
+        if (existingSession.status === "completed") {
+          setError("Você já respondeu esta pesquisa");
+          setLoading(false);
+          return;
+        }
+        setSessionId(existingSession.id);
+        await (supabase.from("survey_sessions") as any)
+          .update({ last_activity_at: new Date().toISOString() })
+          .eq("id", existingSession.id);
+      } else {
+        const { data: newSession } = await (supabase.from("survey_sessions") as any)
+          .insert([{ config_id: id, session_token: sessionToken, status: "in_progress" }])
+          .select("id")
+          .single();
+        if (newSession) setSessionId(newSession.id);
       }
 
       // Restore saved progress
@@ -134,7 +169,16 @@ export default function PublicSurvey() {
         response_timestamp: new Date().toISOString(),
       }] as any);
       if (err) throw err;
+
+      // Mark session as completed
+      if (sessionId) {
+        await (supabase.from("survey_sessions") as any)
+          .update({ status: "completed", completed_at: new Date().toISOString() })
+          .eq("id", sessionId);
+      }
+
       localStorage.removeItem(STORAGE_KEY_PREFIX + id);
+      localStorage.removeItem(STORAGE_KEY_PREFIX + id + "_token");
       setStep("submitted");
     } catch (e: any) {
       alert("Erro ao enviar: " + (e.message || "Tente novamente"));
