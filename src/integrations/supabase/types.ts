@@ -184,6 +184,7 @@ export type Database = {
           require_consent: boolean | null
           require_password: boolean | null
           sector: string | null
+          sectors: Json
           sheet_name: string
           spreadsheet_id: string
           start_date: string | null
@@ -207,6 +208,7 @@ export type Database = {
           require_consent?: boolean | null
           require_password?: boolean | null
           sector?: string | null
+          sectors?: Json
           sheet_name?: string
           spreadsheet_id: string
           start_date?: string | null
@@ -230,6 +232,7 @@ export type Database = {
           require_consent?: boolean | null
           require_password?: boolean | null
           sector?: string | null
+          sectors?: Json
           sheet_name?: string
           spreadsheet_id?: string
           start_date?: string | null
@@ -293,6 +296,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "survey_responses_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "google_forms_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      survey_sessions: {
+        Row: {
+          completed_at: string | null
+          config_id: string
+          id: string
+          last_activity_at: string
+          respondent_name: string | null
+          sector: string | null
+          session_token: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          config_id: string
+          id?: string
+          last_activity_at?: string
+          respondent_name?: string | null
+          sector?: string | null
+          session_token: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          config_id?: string
+          id?: string
+          last_activity_at?: string
+          respondent_name?: string | null
+          sector?: string | null
+          session_token?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_sessions_config_id_fkey"
             columns: ["config_id"]
             isOneToOne: false
             referencedRelation: "google_forms_config"
