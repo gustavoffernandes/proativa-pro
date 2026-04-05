@@ -161,6 +161,9 @@ export function useOnboarding(userId: string | undefined, role: AppRole | null) 
       tooltipClass: "proativa-onboarding-tooltip",
       highlightClass: "proativa-onboarding-highlight",
       overlayOpacity: 0.6,
+      disableInteraction: true,
+      scrollToElement: true,
+      scrollTo: "tooltip",
     });
 
     intro.oncomplete(() => {
