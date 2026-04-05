@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,18 +6,13 @@ import { Building2, Plus, Trash2, Loader2, Edit2, Check, X, MapPin, Phone } from
 import { toast } from "@/hooks/use-toast";
 
 interface CompanyEntry {
+  id: string;
   cnpj: string;
   company_name: string;
   sector: string;
   employee_count: number | null;
   form_count: number;
-  contact_name?: string;
-  contact_email?: string;
-  contact_phone?: string;
-  address_street?: string;
-  address_city?: string;
-  address_state?: string;
-  address_zip?: string;
+  sectors: CompanySector[];
 }
 
 interface CompanySector {
@@ -55,17 +50,16 @@ export default function Companies() {
     contact_name: "", contact_email: "", contact_phone: "",
     address_street: "", address_city: "", address_state: "", address_zip: "",
   });
+  const [formSectors, setFormSectors] = useState<CompanySector[]>([]);
   const [editingCnpj, setEditingCnpj] = useState<string | null>(null);
   const [editData, setEditData] = useState({
     name: "", sector: "", employee_count: "",
     contact_name: "", contact_email: "", contact_phone: "",
     address_street: "", address_city: "", address_state: "", address_zip: "",
   });
-
-  // Sectors management
-  const [companySectors, setCompanySectors] = useState<Record<string, CompanySector[]>>({});
+  const [editSectors, setEditSectors] = useState<CompanySector[]>([]);
   const [newSector, setNewSector] = useState<CompanySector>({ name: "", code: "", description: "" });
-  const [editingSectorIdx, setEditingSectorIdx] = useState<{ cnpj: string; idx: number } | null>(null);
+  const [editingSectorIdx, setEditingSectorIdx] = useState<number | null>(null);
   const [editSectorData, setEditSectorData] = useState<CompanySector>({ name: "", code: "", description: "" });
 
   const { data: configs = [], isLoading } = useQuery({
@@ -78,40 +72,44 @@ export default function Companies() {
   });
 
   const companies: CompanyEntry[] = [];
-  const cnpjMap = new Map<string, { name: string; sector: string; employee_count: number | null; count: number; priority: 0 | 1 }>();
+  const cnpjMap = new Map<string, { id: string; name: string; sector: string; employee_count: number | null; count: number; sectors: CompanySector[]; priority: 0 | 1 }>();
 
   configs.forEach((c: any) => {
     const cnpj = c.cnpj || "";
     if (!cnpj) return;
     const isPlaceholder = c.spreadsheet_id === "__placeholder__";
     const priority: 0 | 1 = isPlaceholder ? 0 : 1;
+    const parsedSectors: CompanySector[] = Array.isArray(c.sectors) ? c.sectors : [];
     if (cnpjMap.has(cnpj)) {
       const current = cnpjMap.get(cnpj)!;
       if (!isPlaceholder) current.count++;
-      if (priority > current.priority) {
+      if (priority > current.priority || (isPlaceholder && current.priority === 0)) {
         current.name = c.company_name || current.name;
         current.sector = c.sector || current.sector;
         current.employee_count = c.employee_count || current.employee_count;
         current.priority = priority;
+        if (parsedSectors.length > 0 || isPlaceholder) current.sectors = parsedSectors;
       }
     } else {
-      cnpjMap.set(cnpj, { name: c.company_name, sector: c.sector || "", employee_count: c.employee_count || null, count: isPlaceholder ? 0 : 1, priority });
+      cnpjMap.set(cnpj, { id: c.id, name: c.company_name, sector: c.sector || "", employee_count: c.employee_count || null, count: isPlaceholder ? 0 : 1, priority, sectors: parsedSectors });
     }
   });
   cnpjMap.forEach((val, cnpj) => {
-    companies.push({ cnpj, company_name: val.name, sector: val.sector, employee_count: val.employee_count, form_count: val.count });
+    companies.push({ id: val.id, cnpj, company_name: val.name, sector: val.sector, employee_count: val.employee_count, form_count: val.count, sectors: val.sectors });
   });
 
   const addCompany = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const cnpjDigits = cleanCNPJ(data.cnpj);
+    mutationFn: async (data: { formData: typeof formData; sectors: CompanySector[] }) => {
+      const cnpjDigits = cleanCNPJ(data.formData.cnpj);
       if (cnpjDigits.length !== 14) throw new Error("CNPJ deve ter 14 dígitos");
       const existing = configs.find((c: any) => c.cnpj === cnpjDigits);
       if (existing) throw new Error("Já existe uma empresa cadastrada com este CNPJ");
       const { error } = await supabase.from("google_forms_config").insert([{
-        company_name: data.company_name, cnpj: cnpjDigits,
+        company_name: data.formData.company_name, cnpj: cnpjDigits,
         spreadsheet_id: "__placeholder__", sheet_name: "Form Responses 1", is_active: false,
-        sector: data.sector || null, employee_count: data.employee_count ? parseInt(data.employee_count) : null,
+        sector: data.formData.sector || null,
+        employee_count: data.formData.employee_count ? parseInt(data.formData.employee_count) : null,
+        sectors: data.sectors as any,
       }] as any);
       if (error) throw error;
     },
@@ -120,17 +118,23 @@ export default function Companies() {
       queryClient.invalidateQueries({ queryKey: ["google-forms-config-all"] });
       setShowForm(false);
       setFormData({ company_name: "", cnpj: "", sector: "", employee_count: "", contact_name: "", contact_email: "", contact_phone: "", address_street: "", address_city: "", address_state: "", address_zip: "" });
+      setFormSectors([]);
       toast({ title: "Empresa cadastrada com sucesso!" });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
   const updateCompany = useMutation({
-    mutationFn: async ({ cnpj, data }: { cnpj: string; data: typeof editData }) => {
+    mutationFn: async ({ cnpj, data, sectors }: { cnpj: string; data: typeof editData; sectors: CompanySector[] }) => {
       const normalizedName = data.name.trim();
       if (!normalizedName) throw new Error("Nome da empresa é obrigatório");
       const parsedEmployeeCount = data.employee_count ? Number(data.employee_count) : null;
-      const updatePayload: any = { company_name: normalizedName, sector: data.sector?.trim() || null, employee_count: parsedEmployeeCount };
+      const updatePayload: any = {
+        company_name: normalizedName,
+        sector: data.sector?.trim() || null,
+        employee_count: parsedEmployeeCount,
+        sectors: sectors as any,
+      };
       const { error } = await (supabase.from("google_forms_config") as any).update(updatePayload).eq("cnpj", cnpj);
       if (error) throw error;
     },
@@ -162,37 +166,24 @@ export default function Companies() {
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
-  const addSector = (cnpj: string) => {
+  const addSectorToList = (list: CompanySector[], setList: (s: CompanySector[]) => void) => {
     if (!newSector.name) return;
-    setCompanySectors(prev => ({
-      ...prev,
-      [cnpj]: [...(prev[cnpj] || []), { ...newSector }],
-    }));
+    setList([...list, { ...newSector }]);
     setNewSector({ name: "", code: "", description: "" });
-    toast({ title: "Setor adicionado!" });
   };
 
-  const removeSector = (cnpj: string, index: number) => {
-    setCompanySectors(prev => ({
-      ...prev,
-      [cnpj]: (prev[cnpj] || []).filter((_, i) => i !== index),
-    }));
+  const removeSectorFromList = (list: CompanySector[], setList: (s: CompanySector[]) => void, index: number) => {
+    setList(list.filter((_, i) => i !== index));
   };
 
-  const startEditSector = (cnpj: string, idx: number) => {
-    const s = companySectors[cnpj]?.[idx];
-    if (s) {
-      setEditingSectorIdx({ cnpj, idx });
-      setEditSectorData({ ...s });
-    }
+  const startEditSector = (idx: number, sectors: CompanySector[]) => {
+    setEditingSectorIdx(idx);
+    setEditSectorData({ ...sectors[idx] });
   };
 
-  const saveEditSector = () => {
-    if (!editingSectorIdx || !editSectorData.name) return;
-    setCompanySectors(prev => ({
-      ...prev,
-      [editingSectorIdx.cnpj]: (prev[editingSectorIdx.cnpj] || []).map((s, i) => i === editingSectorIdx.idx ? { ...editSectorData } : s),
-    }));
+  const saveEditSector = (sectors: CompanySector[], setList: (s: CompanySector[]) => void) => {
+    if (editingSectorIdx === null || !editSectorData.name) return;
+    setList(sectors.map((s, i) => i === editingSectorIdx ? { ...editSectorData } : s));
     setEditingSectorIdx(null);
     toast({ title: "Setor atualizado!" });
   };
@@ -203,15 +194,68 @@ export default function Companies() {
       name: company.company_name,
       sector: company.sector || "",
       employee_count: company.employee_count ? String(company.employee_count) : "",
-      contact_name: company.contact_name || "",
-      contact_email: company.contact_email || "",
-      contact_phone: company.contact_phone || "",
-      address_street: company.address_street || "",
-      address_city: company.address_city || "",
-      address_state: company.address_state || "",
-      address_zip: company.address_zip || "",
+      contact_name: "", contact_email: "", contact_phone: "",
+      address_street: "", address_city: "", address_state: "", address_zip: "",
     });
+    setEditSectors([...company.sectors]);
+    setEditingSectorIdx(null);
   };
+
+  const renderSectorEditor = (sectors: CompanySector[], setList: (s: CompanySector[]) => void) => (
+    <div className="space-y-3">
+      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Setores da Empresa</h4>
+      <p className="text-xs text-muted-foreground">Adicione os setores que aparecerão no formulário de pesquisa.</p>
+      {sectors.length > 0 && (
+        <div className="space-y-2">
+          {sectors.map((s, i) => (
+            <div key={i} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
+              {editingSectorIdx === i ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <input value={editSectorData.name} onChange={e => setEditSectorData({ ...editSectorData, name: e.target.value })}
+                    className="rounded border border-border bg-background px-2 py-1 text-xs flex-1" placeholder="Nome" />
+                  <input value={editSectorData.code} onChange={e => setEditSectorData({ ...editSectorData, code: e.target.value.toUpperCase() })}
+                    className="rounded border border-border bg-background px-2 py-1 text-xs w-16" placeholder="Código" />
+                  <button onClick={() => saveEditSector(sectors, setList)} className="p-1 rounded text-success hover:bg-success/10"><Check className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setEditingSectorIdx(null)} className="p-1 rounded text-muted-foreground hover:bg-muted"><X className="h-3.5 w-3.5" /></button>
+                </div>
+              ) : (
+                <>
+                  <span className="text-sm font-medium text-foreground">{s.code ? `${s.code} - ` : ""}{s.name}</span>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => startEditSector(i, sectors)} className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"><Edit2 className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => removeSectorFromList(sectors, setList, i)} className="p-1 rounded text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-foreground">Nome *</label>
+          <input value={newSector.name} onChange={e => setNewSector({ ...newSector, name: e.target.value })}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" placeholder="Ex: Produção, RH" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-foreground">Código</label>
+          <input value={newSector.code} onChange={e => setNewSector({ ...newSector, code: e.target.value.toUpperCase() })}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" placeholder="Ex: PROD, RH" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-foreground">Descrição</label>
+          <div className="flex gap-2">
+            <input value={newSector.description} onChange={e => setNewSector({ ...newSector, description: e.target.value })}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" placeholder="Opcional" />
+            <button onClick={() => addSectorToList(sectors, setList)} disabled={!newSector.name}
+              className="shrink-0 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors">
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <DashboardLayout>
@@ -309,52 +353,10 @@ export default function Companies() {
               </div>
             </div>
 
-            {/* Sectors for new company */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Setores da Empresa</h4>
-              <p className="text-xs text-muted-foreground">Adicione os setores que aparecerão no formulário de pesquisa.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">Nome *</label>
-                  <input value={newSector.name} onChange={e => setNewSector({ ...newSector, name: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" placeholder="Ex: Produção, RH" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">Código</label>
-                  <input value={newSector.code} onChange={e => setNewSector({ ...newSector, code: e.target.value.toUpperCase() })}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" placeholder="Ex: PROD, RH" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">Descrição</label>
-                  <div className="flex gap-2">
-                    <input value={newSector.description} onChange={e => setNewSector({ ...newSector, description: e.target.value })}
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" placeholder="Opcional" />
-                    <button onClick={() => addSector("new")} disabled={!newSector.name}
-                      className="shrink-0 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors">
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              {(companySectors["new"] || []).length > 0 && (
-                <div className="space-y-2 mt-2">
-                  {companySectors["new"].map((s, i) => (
-                    <div key={i} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
-                      <div>
-                        <span className="text-sm font-medium text-foreground">{s.code ? `${s.code} - ` : ""}{s.name}</span>
-                        {s.description && <span className="text-xs text-muted-foreground ml-2">({s.description})</span>}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => removeSector("new", i)} className="p-1 rounded text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            {renderSectorEditor(formSectors, setFormSectors)}
 
             <div className="flex gap-2">
-              <button onClick={() => addCompany.mutate(formData)}
+              <button onClick={() => addCompany.mutate({ formData, sectors: formSectors })}
                 disabled={addCompany.isPending || !formData.company_name || cleanCNPJ(formData.cnpj).length !== 14}
                 className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors">
                 {addCompany.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Salvar
@@ -378,7 +380,6 @@ export default function Companies() {
               <div key={company.cnpj} className="rounded-xl border border-border bg-card p-5 shadow-card">
                 <div className="flex flex-col gap-3">
                   {editingCnpj === company.cnpj ? (
-                    /* Full edit form */
                     <div className="space-y-4">
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Dados Básicos</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -444,45 +445,10 @@ export default function Companies() {
                         </div>
                       </div>
 
-                      {/* Sectors in edit mode */}
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Setores</h4>
-                      {(companySectors[company.cnpj] || []).length > 0 && (
-                        <div className="space-y-2">
-                          {companySectors[company.cnpj].map((s, i) => (
-                            <div key={i} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
-                              {editingSectorIdx?.cnpj === company.cnpj && editingSectorIdx?.idx === i ? (
-                                <div className="flex items-center gap-2 flex-1">
-                                  <input value={editSectorData.name} onChange={e => setEditSectorData({ ...editSectorData, name: e.target.value })}
-                                    className="rounded border border-border bg-background px-2 py-1 text-xs flex-1" placeholder="Nome" />
-                                  <input value={editSectorData.code} onChange={e => setEditSectorData({ ...editSectorData, code: e.target.value.toUpperCase() })}
-                                    className="rounded border border-border bg-background px-2 py-1 text-xs w-16" placeholder="Código" />
-                                  <button onClick={saveEditSector} className="p-1 rounded text-success hover:bg-success/10"><Check className="h-3.5 w-3.5" /></button>
-                                  <button onClick={() => setEditingSectorIdx(null)} className="p-1 rounded text-muted-foreground hover:bg-muted"><X className="h-3.5 w-3.5" /></button>
-                                </div>
-                              ) : (
-                                <>
-                                  <span className="text-sm font-medium text-foreground">{s.code ? `${s.code} - ` : ""}{s.name}</span>
-                                  <div className="flex items-center gap-1">
-                                    <button onClick={() => startEditSector(company.cnpj, i)} className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"><Edit2 className="h-3.5 w-3.5" /></button>
-                                    <button onClick={() => removeSector(company.cnpj, i)} className="p-1 rounded text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <input value={newSector.name} onChange={e => setNewSector({ ...newSector, name: e.target.value })}
-                          className="rounded-lg border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary flex-1" placeholder="Nome do setor" />
-                        <input value={newSector.code} onChange={e => setNewSector({ ...newSector, code: e.target.value.toUpperCase() })}
-                          className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Código" />
-                        <button onClick={() => { addSector(company.cnpj); }} disabled={!newSector.name}
-                          className="rounded p-1 text-success hover:bg-success/10 disabled:opacity-50"><Plus className="h-4 w-4" /></button>
-                      </div>
+                      {renderSectorEditor(editSectors, setEditSectors)}
 
                       <div className="flex items-center gap-2 pt-2">
-                        <button onClick={() => updateCompany.mutate({ cnpj: company.cnpj, data: editData })}
+                        <button onClick={() => updateCompany.mutate({ cnpj: company.cnpj, data: editData, sectors: editSectors })}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">
                           <Check className="h-3 w-3" /> Salvar
                         </button>
@@ -492,7 +458,6 @@ export default function Companies() {
                       </div>
                     </div>
                   ) : (
-                    /* Display mode */
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -503,18 +468,16 @@ export default function Companies() {
                         {company.employee_count && <p className="text-xs text-muted-foreground">Funcionários: {company.employee_count}</p>}
                         <p className="text-xs text-muted-foreground">{company.form_count} formulário(s) vinculado(s)</p>
 
-                        {(companySectors[company.cnpj] || []).length > 0 && (
-                          <div className="space-y-1 mt-2">
-                            <p className="text-[10px] font-semibold text-muted-foreground uppercase">Setores:</p>
-                            {companySectors[company.cnpj].map((s, i) => (
-                              <div key={i} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-1.5">
-                                <span className="text-xs font-medium text-foreground">{s.code ? `${s.code} - ` : ""}{s.name}</span>
-                                <div className="flex items-center gap-1">
-                                  <button onClick={() => startEditSector(company.cnpj, i)} className="p-0.5 rounded text-muted-foreground hover:text-foreground"><Edit2 className="h-3 w-3" /></button>
-                                  <button onClick={() => removeSector(company.cnpj, i)} className="p-0.5 rounded text-destructive hover:bg-destructive/10"><Trash2 className="h-3 w-3" /></button>
-                                </div>
-                              </div>
-                            ))}
+                        {company.sectors.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">Setores:</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {company.sectors.map((s, i) => (
+                                <span key={i} className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
+                                  {s.code ? `${s.code} - ` : ""}{s.name}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
