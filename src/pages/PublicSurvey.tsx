@@ -169,7 +169,16 @@ export default function PublicSurvey() {
         response_timestamp: new Date().toISOString(),
       }] as any);
       if (err) throw err;
+
+      // Mark session as completed
+      if (sessionId) {
+        await (supabase.from("survey_sessions") as any)
+          .update({ status: "completed", completed_at: new Date().toISOString() })
+          .eq("id", sessionId);
+      }
+
       localStorage.removeItem(STORAGE_KEY_PREFIX + id);
+      localStorage.removeItem(STORAGE_KEY_PREFIX + id + "_token");
       setStep("submitted");
     } catch (e: any) {
       alert("Erro ao enviar: " + (e.message || "Tente novamente"));
