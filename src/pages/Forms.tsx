@@ -21,6 +21,7 @@ interface FormConfig {
   form_title: string | null;
   is_active: boolean;
   created_at: string;
+  sectors: any[];
 }
 
 function generateSurveyLink(formId: string) {

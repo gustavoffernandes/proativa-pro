@@ -1,15 +1,11 @@
 import { useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useSurveyData } from "@/hooks/useSurveyData";
-import { useUrlFilters } from "@/hooks/useUrlFilters";
-import { DateRangeFilter } from "@/components/dashboard/DateRangeFilter";
-import { FormFilter } from "@/components/dashboard/FormFilter";
-import { MultiSelectCompanies } from "@/components/dashboard/MultiSelectCompanies";
 import { PageSkeleton } from "@/components/dashboard/PageSkeleton";
 import { OPEN_QUESTIONS } from "@/lib/proartQuestions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquareText, Building2, Calendar, User, Filter } from "lucide-react";
+import { MessageSquareText, Building2, Calendar, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -24,7 +20,7 @@ interface OpenResponse {
 
 export default function OpenResponses() {
   const { companies, formConfigs, isLoading: surveyLoading } = useSurveyData();
-  const { selectedCompanies, setSelectedCompanies, selectedFormId, setSelectedFormId, dateRange, setDateRange } = useUrlFilters();
+  const [selectedFormId, setSelectedFormId] = useState("");
 
   const { data: responses = [], isLoading: loadingResponses } = useQuery({
     queryKey: ["open-responses"],
@@ -38,30 +34,14 @@ export default function OpenResponses() {
     },
   });
 
-  const selectedCompanySet = new Set(selectedCompanies);
-  const companyConfigIds = useMemo(() => {
-    if (selectedCompanySet.size === 0) return null;
-    const ids = new Set<string>();
-    formConfigs.forEach(fc => {
-      const company = companies.find(c => c.id === fc.companyKey || c.name === fc.companyKey);
-      if (company && selectedCompanySet.has(company.id)) ids.add(fc.configId);
-    });
-    return ids;
-  }, [selectedCompanies, formConfigs, companies]);
-
   const filteredResponses = useMemo(() => {
     return responses.filter(r => {
       if (selectedFormId && r.config_id !== selectedFormId) return false;
-      if (companyConfigIds && !companyConfigIds.has(r.config_id)) return false;
-      if (dateRange?.from) {
-        const ts = r.response_timestamp ? new Date(r.response_timestamp) : null;
-        if (!ts) return false;
-        if (ts < dateRange.from) return false;
-        if (dateRange.to && ts > dateRange.to) return false;
-      }
+      // Filter out responses with empty open_answers
+      if (!r.open_answers || Object.values(r.open_answers).every(v => !v || !v.trim())) return false;
       return true;
     });
-  }, [responses, selectedFormId, companyConfigIds, dateRange]);
+  }, [responses, selectedFormId]);
 
   // Group by question
   const grouped = useMemo(() => {
@@ -90,11 +70,6 @@ export default function OpenResponses() {
 
   if (surveyLoading || loadingResponses) return <DashboardLayout><PageSkeleton /></DashboardLayout>;
 
-  const getFormTitle = (configId: string) => {
-    const fc = formConfigs.find(f => f.configId === configId);
-    return fc?.title || "Formulário";
-  };
-
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
@@ -109,11 +84,20 @@ export default function OpenResponses() {
           </Badge>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <MultiSelectCompanies companies={companies} selected={selectedCompanies} onChange={setSelectedCompanies} />
-          <FormFilter formConfigs={formConfigs} selectedFormId={selectedFormId} onFormChange={setSelectedFormId} />
-          <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
-        </div>
+        {formConfigs.length > 1 && (
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedFormId}
+              onChange={e => setSelectedFormId(e.target.value)}
+              className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="">Todos os formulários</option>
+              {formConfigs.map(fc => (
+                <option key={fc.configId} value={fc.configId}>{fc.title}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {totalOpenAnswers === 0 ? (
           <Card>
