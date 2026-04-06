@@ -17,6 +17,7 @@ const menuGroups = [
       { path: "/demografico", label: "Perfil Demográfico", icon: Users, adminOnly: false, hideForCompanyUser: false, onboardingId: "menu-demografico" },
       { path: "/heatmap", label: "Heatmap Satisfação", icon: FileText, adminOnly: false, hideForCompanyUser: false, onboardingId: "menu-heatmap" },
       { path: "/evolucao", label: "Evolução Temporal", icon: TrendingUp, adminOnly: false, hideForCompanyUser: false, onboardingId: "menu-evolucao" },
+      { path: "/respostas-livres", label: "Respostas Livres", icon: MessageSquareText, adminOnly: false, hideForCompanyUser: false, onboardingId: "" },
     ],
   },
   {
