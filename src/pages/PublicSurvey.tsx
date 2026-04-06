@@ -418,7 +418,7 @@ export default function PublicSurvey() {
                 onChange={e => { setPasswordInput(e.target.value); setPasswordError(false); }}
                 placeholder="Digite a senha fornecida"
                 className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-all text-white placeholder:text-white/30"
-                style={{ background: `hsl(${navy})`, border: `1px solid ${passwordError ? 'hsl(0 72% 55%)' : `hsl(${slate} / 0.15)`}`, focusRing: `hsl(${teal})` }} />
+                style={{ background: `hsl(${navy})`, border: `1px solid ${passwordError ? 'hsl(0 72% 55%)' : `hsl(${slate} / 0.15)`}` }} />
               {passwordError && <p className="text-xs mt-2 font-medium" style={{ color: 'hsl(0 72% 65%)' }}>Senha incorreta. Tente novamente.</p>}
             </div>
           </div>
