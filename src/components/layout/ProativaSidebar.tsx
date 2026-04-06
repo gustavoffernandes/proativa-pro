@@ -2,7 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, BarChart3, Building2, Users, FileText, Download,
   Settings, ChevronLeft, ChevronRight, X, LogOut, StickyNote, ClipboardList,
-  TrendingUp, Briefcase, HelpCircle, Crown, UserCheck, FileCheck
+  TrendingUp, Briefcase, HelpCircle, Crown, UserCheck, FileCheck, MessageSquareText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
