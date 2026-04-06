@@ -90,6 +90,10 @@ export default function Forms() {
       if (!data.form_title) throw new Error("Título é obrigatório");
       const companyName = registeredCompanies.find(c => c.cnpj === data.company_cnpj)?.name || "";
 
+      // Find sectors from the company's placeholder config
+      const companyPlaceholder = allConfigs.find(c => c.cnpj === data.company_cnpj && c.spreadsheet_id === "__placeholder__");
+      const companySectors = companyPlaceholder && Array.isArray(companyPlaceholder.sectors) ? companyPlaceholder.sectors : [];
+
       const payload: any = {
         company_name: companyName,
         cnpj: data.company_cnpj,
@@ -105,6 +109,7 @@ export default function Forms() {
         require_consent: data.require_consent,
         require_password: data.require_password,
         survey_password: data.require_password ? data.survey_password : "",
+        sectors: companySectors,
       };
 
       if (editingId) {
