@@ -20,6 +20,7 @@ import NotFound from "./pages/NotFound";
 import CompanyNotes from "./pages/CompanyNotes";
 import ActionPlans from "./pages/ActionPlans";
 import TemporalEvolution from "./pages/TemporalEvolution";
+import OpenResponses from "./pages/OpenResponses";
 import Companies from "./pages/Companies";
 import Respondents from "./pages/Respondents";
 import Users from "./pages/Users";
