@@ -2,7 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, BarChart3, Building2, Users, FileText, Download,
   Settings, ChevronLeft, ChevronRight, X, LogOut, StickyNote, ClipboardList,
-  TrendingUp, Briefcase, HelpCircle, Crown, UserCheck, FileCheck
+  TrendingUp, Briefcase, HelpCircle, Crown, UserCheck, FileCheck, MessageSquareText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,7 @@ const menuGroups = [
       { path: "/demografico", label: "Perfil Demográfico", icon: Users, adminOnly: false, hideForCompanyUser: false, onboardingId: "menu-demografico" },
       { path: "/heatmap", label: "Heatmap Satisfação", icon: FileText, adminOnly: false, hideForCompanyUser: false, onboardingId: "menu-heatmap" },
       { path: "/evolucao", label: "Evolução Temporal", icon: TrendingUp, adminOnly: false, hideForCompanyUser: false, onboardingId: "menu-evolucao" },
+      { path: "/respostas-livres", label: "Respostas Livres", icon: MessageSquareText, adminOnly: false, hideForCompanyUser: false, onboardingId: "" },
     ],
   },
   {

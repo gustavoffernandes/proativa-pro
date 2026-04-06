@@ -20,6 +20,7 @@ import NotFound from "./pages/NotFound";
 import CompanyNotes from "./pages/CompanyNotes";
 import ActionPlans from "./pages/ActionPlans";
 import TemporalEvolution from "./pages/TemporalEvolution";
+import OpenResponses from "./pages/OpenResponses";
 import Companies from "./pages/Companies";
 import Respondents from "./pages/Respondents";
 import Users from "./pages/Users";
@@ -54,6 +55,7 @@ const App = () => (
               <Route path="/demografico" element={<ProtectedRoute><Demographics /></ProtectedRoute>} />
               <Route path="/heatmap" element={<ProtectedRoute><Heatmap /></ProtectedRoute>} />
               <Route path="/evolucao" element={<ProtectedRoute><TemporalEvolution /></ProtectedRoute>} />
+              <Route path="/respostas-livres" element={<ProtectedRoute><OpenResponses /></ProtectedRoute>} />
               <Route path="/relatorios" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
               <Route path="/empresas-cadastro" element={<ProtectedRoute requireAdmin><Companies /></ProtectedRoute>} />
               <Route path="/formularios" element={<ProtectedRoute requireAdmin><Forms /></ProtectedRoute>} />

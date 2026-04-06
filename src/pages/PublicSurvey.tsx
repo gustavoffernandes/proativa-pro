@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PROART_QUESTIONS, OPEN_QUESTIONS, LIKERT_OPTIONS, DEMOGRAPHIC_OPTIONS, getQuestionsByScale } from "@/lib/proartQuestions";
-import { CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, Loader2, Lock, Save, Shield, AlertCircle, User, Briefcase } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, Loader2, Lock, Save, Shield, AlertCircle, User, Briefcase, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Step = "welcome" | "consent" | "password" | "demographics" | "scale-0" | "scale-1" | "scale-2" | "scale-3" | "open" | "review" | "submitted";
@@ -35,6 +35,14 @@ interface Demographics {
 }
 
 const STORAGE_KEY_PREFIX = "proativa_survey_";
+
+// Navy & Teal palette
+const navy = "220 60% 16%";
+const navyLight = "218 40% 28%";
+const teal = "174 62% 42%";
+const tealLight = "174 50% 55%";
+const slate = "215 20% 65%";
+const cream = "210 20% 98%";
 
 export default function PublicSurvey() {
   const { id } = useParams<{ id: string }>();
@@ -78,7 +86,8 @@ export default function PublicSurvey() {
       const configSectors: string[] = [];
       if (Array.isArray((data as any).sectors)) {
         (data as any).sectors.forEach((s: any) => {
-          if (s.name) configSectors.push(s.name);
+          if (typeof s === "string") configSectors.push(s);
+          else if (s && s.name) configSectors.push(s.name);
         });
       }
       setSectors([...new Set(configSectors)]);
@@ -204,42 +213,41 @@ export default function PublicSurvey() {
     return true;
   };
 
-  // --- Color palette derived from dashboard tokens ---
-  const primaryHsl = "217 71% 45%";
-  const accentHsl = "170 60% 45%";
-
+  // --- Loading ---
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: `linear-gradient(135deg, hsl(${primaryHsl} / 0.06) 0%, hsl(0 0% 100%) 50%, hsl(${accentHsl} / 0.06) 100%)` }}>
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: `hsl(${primaryHsl})` }}>
-          <Loader2 className="h-6 w-6 animate-spin text-white" />
+    <div className="min-h-screen flex items-center justify-center" style={{ background: `hsl(${navy})` }}>
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: `hsl(${teal})` }}>
+          <Loader2 className="h-7 w-7 animate-spin text-white" />
         </div>
-        <p className="text-sm font-medium" style={{ color: `hsl(220 30% 40%)` }}>Carregando pesquisa...</p>
+        <p className="text-sm font-medium text-white/70">Carregando pesquisa...</p>
       </div>
     </div>
   );
 
+  // --- Error ---
   if (error) return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: `linear-gradient(135deg, hsl(${primaryHsl} / 0.06) 0%, hsl(0 0% 100%) 50%, hsl(${accentHsl} / 0.06) 100%)` }}>
-      <div className="bg-white rounded-2xl p-8 max-w-md text-center" style={{ boxShadow: '0 20px 60px -15px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.04)' }}>
-        <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'hsl(0 72% 55% / 0.1)' }}>
-          <AlertCircle className="h-7 w-7" style={{ color: 'hsl(0 72% 55%)' }} />
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: `hsl(${navy})` }}>
+      <div className="rounded-2xl p-8 max-w-md text-center" style={{ background: `hsl(${navyLight})`, boxShadow: '0 25px 60px rgba(0,0,0,0.3)' }}>
+        <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'hsl(0 72% 55% / 0.15)' }}>
+          <AlertCircle className="h-7 w-7" style={{ color: 'hsl(0 72% 65%)' }} />
         </div>
-        <h1 className="text-xl font-bold mb-2" style={{ color: `hsl(220 30% 12%)` }}>Pesquisa Indisponível</h1>
-        <p className="text-sm" style={{ color: `hsl(220 10% 50%)` }}>{error}</p>
+        <h1 className="text-xl font-bold mb-2 text-white">Pesquisa Indisponível</h1>
+        <p className="text-sm text-white/60">{error}</p>
       </div>
     </div>
   );
 
+  // --- Submitted ---
   if (step === "submitted") return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: `linear-gradient(135deg, hsl(${primaryHsl} / 0.06) 0%, hsl(0 0% 100%) 50%, hsl(${accentHsl} / 0.06) 100%)` }}>
-      <div className="bg-white rounded-2xl p-8 max-w-md text-center" style={{ boxShadow: '0 20px 60px -15px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.04)' }}>
-        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: 'hsl(152 60% 42% / 0.12)' }}>
-          <CheckCircle2 className="h-8 w-8" style={{ color: 'hsl(152 60% 42%)' }} />
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: `hsl(${navy})` }}>
+      <div className="rounded-2xl p-8 max-w-md text-center" style={{ background: `hsl(${navyLight})`, boxShadow: '0 25px 60px rgba(0,0,0,0.3)' }}>
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: `hsl(${teal} / 0.15)` }}>
+          <CheckCircle2 className="h-8 w-8" style={{ color: `hsl(${teal})` }} />
         </div>
-        <h1 className="text-2xl font-bold mb-2" style={{ color: `hsl(220 30% 12%)` }}>Obrigado!</h1>
-        <p className="text-sm mb-6" style={{ color: `hsl(220 10% 50%)` }}>Suas respostas foram enviadas com sucesso. Agradecemos sua participação nesta pesquisa.</p>
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium" style={{ background: 'hsl(152 60% 42% / 0.1)', color: 'hsl(152 60% 42%)' }}>
+        <h1 className="text-2xl font-bold mb-2 text-white">Obrigado!</h1>
+        <p className="text-sm mb-6 text-white/60">Suas respostas foram enviadas com sucesso. Agradecemos sua participação nesta pesquisa.</p>
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium" style={{ background: `hsl(${teal} / 0.12)`, color: `hsl(${teal})` }}>
           <Shield className="h-3.5 w-3.5" /> Dados protegidos pela LGPD
         </div>
       </div>
@@ -264,22 +272,22 @@ export default function PublicSurvey() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: `linear-gradient(160deg, hsl(${primaryHsl} / 0.04) 0%, hsl(0 0% 99%) 40%, hsl(${accentHsl} / 0.04) 100%)` }}>
+    <div className="min-h-screen" style={{ background: `linear-gradient(180deg, hsl(${navy}) 0%, hsl(${navyLight} / 0.5) 100%)` }}>
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl border-b" style={{ background: 'hsla(0,0%,100%,0.92)', borderColor: 'hsl(220 15% 92%)' }}>
+      <header className="sticky top-0 z-50 border-b" style={{ background: `hsl(${navy} / 0.95)`, backdropFilter: 'blur(12px)', borderColor: `hsl(${slate} / 0.15)` }}>
         <div className="max-w-3xl mx-auto flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm" style={{ background: `hsl(${primaryHsl})` }}>P</div>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm" style={{ background: `hsl(${teal})` }}>P</div>
             <div>
-              <p className="text-sm font-bold tracking-tight" style={{ color: `hsl(220 30% 12%)` }}>PROATIVA</p>
-              <p className="text-[10px] font-medium" style={{ color: `hsl(220 10% 50%)` }}>Avaliação de Riscos Psicossociais</p>
+              <p className="text-sm font-bold tracking-tight text-white">PROATIVA</p>
+              <p className="text-[10px] font-medium text-white/40">Avaliação de Riscos Psicossociais</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: `hsl(${primaryHsl} / 0.08)`, color: `hsl(${primaryHsl})` }}>
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: `hsl(${teal} / 0.12)`, color: `hsl(${tealLight})` }}>
               <Save className="h-3 w-3" /> Auto-save
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: progress === 100 ? 'hsl(152 60% 42% / 0.1)' : 'hsl(220 15% 95%)', color: progress === 100 ? 'hsl(152 60% 42%)' : `hsl(220 10% 50%)` }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: progress === 100 ? `hsl(${teal} / 0.15)` : `hsl(${slate} / 0.1)`, color: progress === 100 ? `hsl(${teal})` : `hsl(${slate})` }}>
               {answeredCount}/{totalQuestions}
             </div>
           </div>
@@ -288,14 +296,14 @@ export default function PublicSurvey() {
 
       {/* Step indicator */}
       {step !== "welcome" && (
-        <div className="border-b" style={{ borderColor: 'hsl(220 15% 95%)', background: 'hsl(0 0% 100%)' }}>
+        <div className="border-b" style={{ borderColor: `hsl(${slate} / 0.1)`, background: `hsl(${navy} / 0.6)` }}>
           <div className="max-w-3xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold" style={{ color: `hsl(${primaryHsl})` }}>{stepLabels[step] || step}</span>
-              <span className="text-xs font-medium" style={{ color: 'hsl(220 10% 55%)' }}>Etapa {currentStepIdx + 1} de {totalSteps}</span>
+              <span className="text-xs font-semibold" style={{ color: `hsl(${teal})` }}>{stepLabels[step] || step}</span>
+              <span className="text-xs font-medium" style={{ color: `hsl(${slate})` }}>Etapa {currentStepIdx + 1} de {totalSteps}</span>
             </div>
-            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'hsl(220 15% 93%)' }}>
-              <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%`, background: `linear-gradient(90deg, hsl(${primaryHsl}), hsl(${accentHsl}))` }} />
+            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: `hsl(${slate} / 0.15)` }}>
+              <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${((currentStepIdx + 1) / totalSteps) * 100}%`, background: `linear-gradient(90deg, hsl(${teal}), hsl(${tealLight}))` }} />
             </div>
           </div>
         </div>
@@ -306,14 +314,16 @@ export default function PublicSurvey() {
         {/* Welcome */}
         {step === "welcome" && (
           <div className="text-center space-y-8">
-            <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto" style={{ background: `linear-gradient(135deg, hsl(${primaryHsl}), hsl(${primaryHsl} / 0.8))`, boxShadow: `0 12px 40px -10px hsl(${primaryHsl} / 0.35)` }}>
-              <FileText className="h-10 w-10 text-white" />
+            <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto" style={{ background: `linear-gradient(135deg, hsl(${teal}), hsl(${tealLight}))`, boxShadow: `0 15px 50px -12px hsl(${teal} / 0.5)` }}>
+              <BookOpen className="h-10 w-10 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2" style={{ color: 'hsl(220 30% 12%)' }}>{config?.form_title || "Avaliação PROART"}</h1>
-              <p className="text-sm max-w-md mx-auto" style={{ color: 'hsl(220 10% 50%)' }}>{config?.description || "Esta pesquisa avalia fatores de risco psicossocial no ambiente de trabalho."}</p>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-3 text-white">{config?.form_title || "Avaliação PROART"}</h1>
+              <p className="text-sm max-w-lg mx-auto leading-relaxed" style={{ color: `hsl(${slate})` }}>
+                {config?.description || "Pesquisa para avaliação de fatores de risco psicossocial no ambiente de trabalho, fundamentada no Protocolo PROART."}
+              </p>
               {config?.company_name && (
-                <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold" style={{ background: `hsl(${primaryHsl} / 0.08)`, color: `hsl(${primaryHsl})` }}>
+                <div className="mt-4 inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold" style={{ background: `hsl(${teal} / 0.1)`, color: `hsl(${teal})`, border: `1px solid hsl(${teal} / 0.2)` }}>
                   <Briefcase className="h-3.5 w-3.5" /> {config.company_name}
                 </div>
               )}
@@ -325,24 +335,31 @@ export default function PublicSurvey() {
                 { icon: Clock, value: "15-20", label: "Minutos" },
                 { icon: Save, value: "Auto", label: "Salvamento" },
               ].map(({ icon: Icon, value, label }) => (
-                <div key={label} className="p-4 rounded-2xl border" style={{ background: 'hsl(0 0% 100%)', borderColor: 'hsl(220 15% 92%)', boxShadow: '0 2px 8px -2px rgba(0,0,0,0.06)' }}>
-                  <Icon className="h-5 w-5 mx-auto mb-2" style={{ color: `hsl(${primaryHsl})` }} />
-                  <p className="text-lg font-extrabold" style={{ color: 'hsl(220 30% 12%)' }}>{value}</p>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest mt-0.5" style={{ color: 'hsl(220 10% 55%)' }}>{label}</p>
+                <div key={label} className="p-4 rounded-2xl" style={{ background: `hsl(${navyLight})`, border: `1px solid hsl(${slate} / 0.1)` }}>
+                  <Icon className="h-5 w-5 mx-auto mb-2" style={{ color: `hsl(${teal})` }} />
+                  <p className="text-lg font-extrabold text-white">{value}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mt-0.5" style={{ color: `hsl(${slate})` }}>{label}</p>
                 </div>
               ))}
             </div>
 
             {config?.instructions && (
-              <div className="rounded-2xl p-5 text-left" style={{ background: `hsl(${primaryHsl} / 0.05)`, border: `1px solid hsl(${primaryHsl} / 0.12)` }}>
-                <p className="text-sm font-bold flex items-center gap-2 mb-2" style={{ color: `hsl(${primaryHsl})` }}><AlertCircle className="h-4 w-4" /> Instruções</p>
-                <p className="text-sm leading-relaxed" style={{ color: 'hsl(220 20% 35%)' }}>{config.instructions}</p>
+              <div className="rounded-2xl p-5 text-left" style={{ background: `hsl(${navyLight})`, border: `1px solid hsl(${teal} / 0.15)` }}>
+                <p className="text-sm font-bold flex items-center gap-2 mb-2" style={{ color: `hsl(${teal})` }}><AlertCircle className="h-4 w-4" /> Instruções</p>
+                <p className="text-sm leading-relaxed" style={{ color: `hsl(${slate})` }}>{config.instructions}</p>
               </div>
             )}
 
-            <div className="rounded-2xl p-4 text-left" style={{ background: 'hsl(152 60% 42% / 0.06)', border: '1px solid hsl(152 60% 42% / 0.15)' }}>
-              <p className="text-sm font-semibold flex items-center gap-2" style={{ color: 'hsl(152 55% 32%)' }}><Save className="h-4 w-4" /> Suas respostas são salvas automaticamente</p>
-              <p className="text-xs mt-1" style={{ color: 'hsl(152 30% 40%)' }}>Se precisar interromper, você pode voltar depois e continuar de onde parou.</p>
+            <div className="rounded-2xl p-4 text-left" style={{ background: `hsl(${teal} / 0.08)`, border: `1px solid hsl(${teal} / 0.15)` }}>
+              <p className="text-sm font-semibold flex items-center gap-2" style={{ color: `hsl(${teal})` }}><Shield className="h-4 w-4" /> Privacidade e LGPD</p>
+              <p className="text-xs mt-1" style={{ color: `hsl(${slate})` }}>
+                Suas respostas são {config?.is_anonymous ? "anônimas e " : ""}confidenciais, protegidas conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018). Os dados serão utilizados exclusivamente para fins de pesquisa organizacional.
+              </p>
+            </div>
+
+            <div className="rounded-2xl p-4 text-left" style={{ background: `hsl(${navyLight} / 0.6)`, border: `1px solid hsl(${slate} / 0.08)` }}>
+              <p className="text-sm font-semibold flex items-center gap-2" style={{ color: `hsl(${tealLight})` }}><Save className="h-4 w-4" /> Progresso salvo automaticamente</p>
+              <p className="text-xs mt-1" style={{ color: `hsl(${slate} / 0.8)` }}>Se precisar interromper, você pode voltar depois e continuar de onde parou.</p>
             </div>
           </div>
         )}
@@ -350,21 +367,43 @@ export default function PublicSurvey() {
         {/* Consent */}
         {step === "consent" && (
           <div className="space-y-6">
-            <SectionHeader icon={Shield} title="Termo de Consentimento" subtitle="Leia atentamente antes de prosseguir" primaryHsl={primaryHsl} />
-            <div className="rounded-2xl border p-6 space-y-4 text-sm leading-relaxed" style={{ background: 'hsl(0 0% 100%)', borderColor: 'hsl(220 15% 92%)', color: 'hsl(220 15% 35%)' }}>
-              <p>De acordo com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018), informamos que:</p>
-              <ul className="list-disc pl-5 space-y-2">
-                <li>Seus dados serão utilizados exclusivamente para fins de pesquisa organizacional</li>
-                <li>As respostas são {config?.is_anonymous ? "anônimas e " : ""}confidenciais</li>
-                <li>Os resultados serão apresentados de forma agregada, sem identificação individual</li>
-                <li>Você pode interromper a pesquisa a qualquer momento</li>
-                <li>Os dados serão armazenados de forma segura e por tempo determinado</li>
+            <SectionHeader icon={Shield} title="Termo de Consentimento Livre e Esclarecido" subtitle="Leia atentamente antes de prosseguir" />
+            <div className="rounded-2xl p-6 space-y-4 text-sm leading-relaxed" style={{ background: `hsl(${navyLight})`, border: `1px solid hsl(${slate} / 0.1)`, color: `hsl(${slate})` }}>
+              <p className="font-semibold text-white">De acordo com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018), informamos que:</p>
+              <ul className="space-y-3">
+                {[
+                  "Seus dados serão utilizados exclusivamente para fins de pesquisa organizacional e melhoria do ambiente de trabalho.",
+                  `As respostas são ${config?.is_anonymous ? "anônimas e " : ""}confidenciais, garantindo total sigilo sobre suas informações.`,
+                  "Os resultados serão apresentados de forma agregada, sem identificação individual dos participantes.",
+                  "Você pode interromper a pesquisa a qualquer momento, sem qualquer prejuízo.",
+                  "Os dados serão armazenados de forma segura, em servidores protegidos, e por tempo determinado conforme a legislação vigente.",
+                  "Você tem direito a solicitar a exclusão dos seus dados a qualquer momento.",
+                ].map((text, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: `hsl(${teal} / 0.15)` }}>
+                      <CheckCircle2 className="h-3 w-3" style={{ color: `hsl(${teal})` }} />
+                    </div>
+                    <span>{text}</span>
+                  </li>
+                ))}
               </ul>
             </div>
-            <label className="flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition-all" style={{ background: consentAccepted ? `hsl(${primaryHsl} / 0.04)` : 'hsl(0 0% 100%)', borderColor: consentAccepted ? `hsl(${primaryHsl} / 0.3)` : 'hsl(220 15% 90%)' }}>
-              <input type="checkbox" checked={consentAccepted} onChange={e => setConsentAccepted(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded" style={{ accentColor: `hsl(${primaryHsl})` }} />
-              <span className="text-sm" style={{ color: 'hsl(220 15% 30%)' }}>Li e concordo com os termos acima e autorizo o tratamento dos meus dados para os fins descritos.</span>
+            <label className="flex items-start gap-4 p-5 rounded-2xl cursor-pointer transition-all" style={{
+              background: consentAccepted ? `hsl(${teal} / 0.08)` : `hsl(${navyLight})`,
+              border: `2px solid ${consentAccepted ? `hsl(${teal} / 0.4)` : `hsl(${slate} / 0.1)`}`,
+            }}>
+              <div className="relative mt-0.5">
+                <input type="checkbox" checked={consentAccepted} onChange={e => setConsentAccepted(e.target.checked)} className="sr-only" />
+                <div className="w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all" style={{
+                  borderColor: consentAccepted ? `hsl(${teal})` : `hsl(${slate} / 0.4)`,
+                  background: consentAccepted ? `hsl(${teal})` : 'transparent',
+                }}>
+                  {consentAccepted && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
+                </div>
+              </div>
+              <span className="text-sm font-medium" style={{ color: consentAccepted ? `hsl(${teal})` : `hsl(${slate})` }}>
+                Li e concordo com os termos acima e autorizo o tratamento dos meus dados para os fins descritos neste documento.
+              </span>
             </label>
           </div>
         )}
@@ -372,15 +411,15 @@ export default function PublicSurvey() {
         {/* Password */}
         {step === "password" && (
           <div className="space-y-6">
-            <SectionHeader icon={Lock} title="Acesso Protegido" subtitle="Esta pesquisa é protegida por senha" primaryHsl={primaryHsl} />
-            <div className="rounded-2xl border p-6" style={{ background: 'hsl(0 0% 100%)', borderColor: 'hsl(220 15% 92%)' }}>
-              <label className="text-xs font-semibold block mb-2" style={{ color: 'hsl(220 15% 40%)' }}>Senha de Acesso</label>
+            <SectionHeader icon={Lock} title="Acesso Protegido" subtitle="Esta pesquisa é protegida por senha" />
+            <div className="rounded-2xl p-6" style={{ background: `hsl(${navyLight})`, border: `1px solid hsl(${slate} / 0.1)` }}>
+              <label className="text-xs font-semibold block mb-2" style={{ color: `hsl(${slate})` }}>Senha de Acesso</label>
               <input type="password" value={passwordInput}
                 onChange={e => { setPasswordInput(e.target.value); setPasswordError(false); }}
                 placeholder="Digite a senha fornecida"
-                className={cn("w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-all")}
-                style={{ borderColor: passwordError ? 'hsl(0 72% 55%)' : 'hsl(220 15% 90%)', background: 'hsl(220 20% 98%)' }} />
-              {passwordError && <p className="text-xs mt-2 font-medium" style={{ color: 'hsl(0 72% 55%)' }}>Senha incorreta. Tente novamente.</p>}
+                className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-all text-white placeholder:text-white/30"
+                style={{ background: `hsl(${navy})`, border: `1px solid ${passwordError ? 'hsl(0 72% 55%)' : `hsl(${slate} / 0.15)`}` }} />
+              {passwordError && <p className="text-xs mt-2 font-medium" style={{ color: 'hsl(0 72% 65%)' }}>Senha incorreta. Tente novamente.</p>}
             </div>
           </div>
         )}
@@ -388,7 +427,7 @@ export default function PublicSurvey() {
         {/* Demographics */}
         {step === "demographics" && (
           <div className="space-y-6">
-            <SectionHeader icon={User} title="Seus Dados" subtitle="Informações para análise demográfica" primaryHsl={primaryHsl} />
+            <SectionHeader icon={User} title="Seus Dados" subtitle="Informações para análise demográfica" />
 
             {!config?.is_anonymous && (
               <FormCard>
@@ -431,32 +470,32 @@ export default function PublicSurvey() {
             <div className="space-y-5">
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ background: `hsl(${primaryHsl})` }}>{scaleIdx + 1}</div>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold" style={{ background: `hsl(${teal})` }}>{scaleIdx + 1}</div>
                   <div>
-                    <h2 className="text-lg font-bold" style={{ color: 'hsl(220 30% 12%)' }}>{scale.name}</h2>
-                    <p className="text-xs" style={{ color: 'hsl(220 10% 55%)' }}>{scale.fullName}</p>
+                    <h2 className="text-lg font-bold text-white">{scale.name}</h2>
+                    <p className="text-xs" style={{ color: `hsl(${slate})` }}>{scale.fullName}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-3">
-                  <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'hsl(220 15% 93%)' }}>
-                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${(scaleAnswered / scale.questions.length) * 100}%`, background: scaleAnswered === scale.questions.length ? 'hsl(152 60% 42%)' : `hsl(${primaryHsl})` }} />
+                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: `hsl(${slate} / 0.15)` }}>
+                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${(scaleAnswered / scale.questions.length) * 100}%`, background: scaleAnswered === scale.questions.length ? `hsl(${teal})` : `linear-gradient(90deg, hsl(${teal}), hsl(${tealLight}))` }} />
                   </div>
-                  <span className="text-xs font-semibold tabular-nums" style={{ color: scaleAnswered === scale.questions.length ? 'hsl(152 60% 42%)' : 'hsl(220 10% 55%)' }}>{scaleAnswered}/{scale.questions.length}</span>
+                  <span className="text-xs font-semibold tabular-nums" style={{ color: scaleAnswered === scale.questions.length ? `hsl(${teal})` : `hsl(${slate})` }}>{scaleAnswered}/{scale.questions.length}</span>
                 </div>
               </div>
 
               {/* Likert legend */}
-              <div className="rounded-xl p-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1" style={{ background: 'hsl(220 20% 97%)', border: '1px solid hsl(220 15% 93%)' }}>
+              <div className="rounded-xl p-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1" style={{ background: `hsl(${navyLight})`, border: `1px solid hsl(${slate} / 0.1)` }}>
                 {LIKERT_OPTIONS.map(opt => (
-                  <span key={opt.value} className="text-[11px] font-medium" style={{ color: 'hsl(220 15% 40%)' }}>
-                    <strong className="font-bold" style={{ color: `hsl(${primaryHsl})` }}>{opt.value}</strong> = {opt.label}
+                  <span key={opt.value} className="text-[11px] font-medium" style={{ color: `hsl(${slate})` }}>
+                    <strong className="font-bold" style={{ color: `hsl(${teal})` }}>{opt.value}</strong> = {opt.label}
                   </span>
                 ))}
               </div>
 
               <div className="space-y-3">
                 {scale.questions.map(q => (
-                  <QuestionCard key={q.id} question={q} value={answers[q.id]} onChange={v => setAnswer(q.id, v)} primaryHsl={primaryHsl} accentHsl={accentHsl} />
+                  <QuestionCard key={q.id} question={q} value={answers[q.id]} onChange={v => setAnswer(q.id, v)} />
                 ))}
               </div>
             </div>
@@ -466,18 +505,18 @@ export default function PublicSurvey() {
         {/* Open questions */}
         {step === "open" && (
           <div className="space-y-5">
-            <SectionHeader icon={FileText} title="Sua Percepção" subtitle="Respostas livres (opcional, mas muito valiosas)" primaryHsl={primaryHsl} />
+            <SectionHeader icon={FileText} title="Sua Percepção" subtitle="Respostas livres — opcional, mas muito valiosas para a análise" />
             {OPEN_QUESTIONS.map((q, i) => (
-              <div key={q.id} className="rounded-2xl border p-5 space-y-3" style={{ background: 'hsl(0 0% 100%)', borderColor: 'hsl(220 15% 92%)' }}>
-                <p className="text-sm font-semibold" style={{ color: 'hsl(220 30% 15%)' }}>
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white mr-2" style={{ background: `hsl(${primaryHsl})` }}>{i + 1}</span>
+              <div key={q.id} className="rounded-2xl p-5 space-y-3" style={{ background: `hsl(${navyLight})`, border: `1px solid hsl(${slate} / 0.1)` }}>
+                <p className="text-sm font-semibold text-white">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white mr-2" style={{ background: `hsl(${teal})` }}>{i + 1}</span>
                   {q.text}
                 </p>
-                {q.hint && <p className="text-xs pl-8" style={{ color: 'hsl(220 10% 55%)' }}>{q.hint}</p>}
+                {q.hint && <p className="text-xs pl-8" style={{ color: `hsl(${slate})` }}>{q.hint}</p>}
                 <textarea value={openAnswers[q.id] || ""}
                   onChange={e => setOpenAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                  className="w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 min-h-[100px] resize-y transition-all"
-                  style={{ borderColor: 'hsl(220 15% 90%)', background: 'hsl(220 20% 98%)' }}
+                  className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 min-h-[100px] resize-y transition-all text-white placeholder:text-white/25"
+                  style={{ background: `hsl(${navy})`, border: `1px solid hsl(${slate} / 0.12)` }}
                   placeholder="Compartilhe sua perspectiva..." />
               </div>
             ))}
@@ -487,18 +526,18 @@ export default function PublicSurvey() {
         {/* Review */}
         {step === "review" && (
           <div className="space-y-6">
-            <SectionHeader icon={CheckCircle2} title="Revisão Final" subtitle="Verifique suas respostas antes de enviar" primaryHsl={primaryHsl} />
-            <div className="rounded-2xl border p-6 space-y-5" style={{ background: 'hsl(0 0% 100%)', borderColor: 'hsl(220 15% 92%)' }}>
+            <SectionHeader icon={CheckCircle2} title="Revisão Final" subtitle="Verifique suas respostas antes de enviar" />
+            <div className="rounded-2xl p-6 space-y-5" style={{ background: `hsl(${navyLight})`, border: `1px solid hsl(${slate} / 0.1)` }}>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium" style={{ color: 'hsl(220 10% 45%)' }}>Questões respondidas</span>
-                <span className="text-lg font-extrabold" style={{ color: 'hsl(220 30% 12%)' }}>{answeredCount}/{totalQuestions}</span>
+                <span className="text-sm font-medium" style={{ color: `hsl(${slate})` }}>Questões respondidas</span>
+                <span className="text-xl font-extrabold text-white">{answeredCount}/{totalQuestions}</span>
               </div>
-              <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'hsl(220 15% 93%)' }}>
-                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, background: progress === 100 ? 'hsl(152 60% 42%)' : `linear-gradient(90deg, hsl(${primaryHsl}), hsl(${accentHsl}))` }} />
+              <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: `hsl(${slate} / 0.15)` }}>
+                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, background: progress === 100 ? `hsl(${teal})` : `linear-gradient(90deg, hsl(${teal}), hsl(${tealLight}))` }} />
               </div>
               {answeredCount < totalQuestions && (
                 <div className="rounded-xl p-3" style={{ background: 'hsl(38 92% 55% / 0.08)', border: '1px solid hsl(38 92% 55% / 0.2)' }}>
-                  <p className="text-xs font-semibold" style={{ color: 'hsl(38 70% 35%)' }}>⚠️ Faltam {totalQuestions - answeredCount} questões para completar.</p>
+                  <p className="text-xs font-semibold" style={{ color: 'hsl(38 80% 60%)' }}>⚠️ Faltam {totalQuestions - answeredCount} questões para completar.</p>
                 </div>
               )}
               <div className="space-y-1">
@@ -506,10 +545,10 @@ export default function PublicSurvey() {
                   const scaleAnswered = scale.questions.filter(q => answers[q.id] !== undefined).length;
                   const isComplete = scaleAnswered === scale.questions.length;
                   return (
-                    <div key={i} className="flex items-center justify-between py-2.5 border-t" style={{ borderColor: 'hsl(220 15% 95%)' }}>
-                      <span className="text-sm font-medium" style={{ color: 'hsl(220 15% 30%)' }}>{scale.name}</span>
+                    <div key={i} className="flex items-center justify-between py-2.5 border-t" style={{ borderColor: `hsl(${slate} / 0.1)` }}>
+                      <span className="text-sm font-medium text-white/80">{scale.name}</span>
                       <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full")}
-                        style={{ background: isComplete ? 'hsl(152 60% 42% / 0.1)' : 'hsl(38 92% 55% / 0.1)', color: isComplete ? 'hsl(152 55% 32%)' : 'hsl(38 70% 35%)' }}>
+                        style={{ background: isComplete ? `hsl(${teal} / 0.12)` : 'hsl(38 92% 55% / 0.1)', color: isComplete ? `hsl(${teal})` : 'hsl(38 80% 60%)' }}>
                         {scaleAnswered}/{scale.questions.length}
                       </span>
                     </div>
@@ -518,8 +557,8 @@ export default function PublicSurvey() {
               </div>
             </div>
             <button onClick={handleSubmit} disabled={submitting || answeredCount < totalQuestions}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl text-white py-4 text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: answeredCount >= totalQuestions ? `linear-gradient(135deg, hsl(${primaryHsl}), hsl(${primaryHsl} / 0.85))` : 'hsl(220 15% 70%)', boxShadow: answeredCount >= totalQuestions ? `0 8px 30px -8px hsl(${primaryHsl} / 0.4)` : 'none' }}>
+              className="w-full flex items-center justify-center gap-2 rounded-2xl text-white py-4 text-sm font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ background: answeredCount >= totalQuestions ? `linear-gradient(135deg, hsl(${teal}), hsl(${tealLight}))` : `hsl(${slate} / 0.3)`, boxShadow: answeredCount >= totalQuestions ? `0 10px 40px -10px hsl(${teal} / 0.5)` : 'none' }}>
               {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</> : <><CheckCircle2 className="h-4 w-4" /> Enviar Respostas</>}
             </button>
           </div>
@@ -528,11 +567,11 @@ export default function PublicSurvey() {
 
       {/* Navigation footer */}
       {step !== "review" && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl border-t" style={{ background: 'hsla(0,0%,100%,0.92)', borderColor: 'hsl(220 15% 92%)' }}>
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t" style={{ background: `hsl(${navy} / 0.95)`, backdropFilter: 'blur(12px)', borderColor: `hsl(${slate} / 0.1)` }}>
           <div className="max-w-3xl mx-auto flex items-center justify-between px-4 py-3">
             <button onClick={goPrev} disabled={currentStepIdx === 0}
-              className="flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all disabled:opacity-25 disabled:cursor-not-allowed"
-              style={{ color: 'hsl(220 15% 40%)', background: 'hsl(220 15% 95%)' }}>
+              className="flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+              style={{ color: `hsl(${slate})`, background: `hsl(${slate} / 0.1)` }}>
               <ChevronLeft className="h-4 w-4" /> Anterior
             </button>
             <button onClick={() => {
@@ -542,8 +581,8 @@ export default function PublicSurvey() {
               }
               goNext();
             }} disabled={!canProceed()}
-              className="flex items-center gap-1.5 rounded-xl text-white px-6 py-2.5 text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: `hsl(${primaryHsl})`, boxShadow: `0 4px 14px -4px hsl(${primaryHsl} / 0.4)` }}>
+              className="flex items-center gap-1.5 rounded-xl text-white px-6 py-2.5 text-sm font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ background: `hsl(${teal})`, boxShadow: `0 4px 20px -4px hsl(${teal} / 0.4)` }}>
               Próximo <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -555,15 +594,15 @@ export default function PublicSurvey() {
 
 // ====== Sub-components ======
 
-function SectionHeader({ icon: Icon, title, subtitle, primaryHsl }: { icon: any; title: string; subtitle: string; primaryHsl: string }) {
+function SectionHeader({ icon: Icon, title, subtitle }: { icon: any; title: string; subtitle: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `hsl(${primaryHsl} / 0.1)` }}>
-        <Icon className="h-5 w-5" style={{ color: `hsl(${primaryHsl})` }} />
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `hsl(${teal} / 0.12)` }}>
+        <Icon className="h-5 w-5" style={{ color: `hsl(${teal})` }} />
       </div>
       <div>
-        <h2 className="text-xl font-bold" style={{ color: 'hsl(220 30% 12%)' }}>{title}</h2>
-        <p className="text-sm mt-0.5" style={{ color: 'hsl(220 10% 55%)' }}>{subtitle}</p>
+        <h2 className="text-xl font-bold text-white">{title}</h2>
+        <p className="text-sm mt-0.5" style={{ color: `hsl(${slate})` }}>{subtitle}</p>
       </div>
     </div>
   );
@@ -571,11 +610,11 @@ function SectionHeader({ icon: Icon, title, subtitle, primaryHsl }: { icon: any;
 
 function FormCard({ title, icon: Icon, children }: { title?: string; icon?: any; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border p-5 space-y-4" style={{ background: 'hsl(0 0% 100%)', borderColor: 'hsl(220 15% 92%)' }}>
+    <div className="rounded-2xl p-5 space-y-4" style={{ background: `hsl(${navyLight})`, border: `1px solid hsl(${slate} / 0.1)` }}>
       {title && (
-        <div className="flex items-center gap-2 pb-3 border-b" style={{ borderColor: 'hsl(220 15% 95%)' }}>
-          {Icon && <Icon className="h-4 w-4" style={{ color: 'hsl(217 71% 45%)' }} />}
-          <h3 className="text-sm font-bold" style={{ color: 'hsl(220 30% 15%)' }}>{title}</h3>
+        <div className="flex items-center gap-2 pb-3 border-b" style={{ borderColor: `hsl(${slate} / 0.1)` }}>
+          {Icon && <Icon className="h-4 w-4" style={{ color: `hsl(${teal})` }} />}
+          <h3 className="text-sm font-bold text-white">{title}</h3>
         </div>
       )}
       {children}
@@ -584,14 +623,14 @@ function FormCard({ title, icon: Icon, children }: { title?: string; icon?: any;
 }
 
 function FieldLabel({ label, required }: { label: string; required?: boolean }) {
-  return <label className="text-xs font-semibold block" style={{ color: 'hsl(220 15% 40%)' }}>{label}{required && <span style={{ color: 'hsl(0 72% 55%)' }}> *</span>}</label>;
+  return <label className="text-xs font-semibold block" style={{ color: `hsl(${slate})` }}>{label}{required && <span style={{ color: `hsl(${teal})` }}> *</span>}</label>;
 }
 
 function StyledInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition-all"
-      style={{ borderColor: 'hsl(220 15% 90%)', background: 'hsl(220 20% 98%)', color: 'hsl(220 30% 12%)' }} />
+      className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition-all text-white placeholder:text-white/25"
+      style={{ background: `hsl(${navy})`, border: `1px solid hsl(${slate} / 0.12)` }} />
   );
 }
 
@@ -600,8 +639,8 @@ function StyledSelect({ label, value, onChange, options, required }: { label: st
     <div className="space-y-1.5">
       <FieldLabel label={label} required={required} />
       <select value={value} onChange={e => onChange(e.target.value)}
-        className="w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 appearance-none transition-all"
-        style={{ borderColor: 'hsl(220 15% 90%)', background: 'hsl(220 20% 98%)', color: value ? 'hsl(220 30% 12%)' : 'hsl(220 10% 60%)' }}>
+        className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 appearance-none transition-all"
+        style={{ background: `hsl(${navy})`, border: `1px solid hsl(${slate} / 0.12)`, color: value ? 'white' : `hsl(${slate} / 0.5)` }}>
         <option value="">Selecione...</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
@@ -609,13 +648,13 @@ function StyledSelect({ label, value, onChange, options, required }: { label: st
   );
 }
 
-function QuestionCard({ question, value, onChange, primaryHsl, accentHsl }: { question: { id: string; number: number; text: string }; value?: number; onChange: (v: number) => void; primaryHsl: string; accentHsl: string }) {
+function QuestionCard({ question, value, onChange }: { question: { id: string; number: number; text: string }; value?: number; onChange: (v: number) => void }) {
   const isAnswered = value !== undefined;
   return (
-    <div className="rounded-2xl border p-4 transition-all duration-200"
-      style={{ background: isAnswered ? `hsl(${primaryHsl} / 0.03)` : 'hsl(0 0% 100%)', borderColor: isAnswered ? `hsl(${primaryHsl} / 0.2)` : 'hsl(220 15% 92%)' }}>
-      <p className="text-sm mb-3" style={{ color: 'hsl(220 25% 18%)' }}>
-        <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs font-bold text-white mr-2" style={{ background: isAnswered ? `hsl(${accentHsl})` : `hsl(${primaryHsl} / 0.6)` }}>{question.number}</span>
+    <div className="rounded-2xl p-4 transition-all duration-200"
+      style={{ background: isAnswered ? `hsl(${teal} / 0.06)` : `hsl(${navyLight})`, border: `1px solid ${isAnswered ? `hsl(${teal} / 0.2)` : `hsl(${slate} / 0.08)`}` }}>
+      <p className="text-sm mb-3 text-white/90">
+        <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs font-bold text-white mr-2" style={{ background: isAnswered ? `hsl(${teal})` : `hsl(${slate} / 0.25)` }}>{question.number}</span>
         {question.text}
       </p>
       <div className="flex flex-wrap gap-2">
@@ -623,16 +662,16 @@ function QuestionCard({ question, value, onChange, primaryHsl, accentHsl }: { qu
           const isSelected = value === opt.value;
           return (
             <button key={opt.value} onClick={() => onChange(opt.value)}
-              className="flex-1 min-w-[56px] rounded-xl px-2 py-2 text-center transition-all duration-200 border"
+              className="flex-1 min-w-[56px] rounded-xl px-2 py-2.5 text-center transition-all duration-200 border"
               style={{
-                background: isSelected ? `hsl(${primaryHsl})` : 'hsl(220 20% 98%)',
-                color: isSelected ? 'white' : 'hsl(220 15% 40%)',
-                borderColor: isSelected ? `hsl(${primaryHsl})` : 'hsl(220 15% 90%)',
-                boxShadow: isSelected ? `0 4px 12px -4px hsl(${primaryHsl} / 0.35)` : 'none',
+                background: isSelected ? `hsl(${teal})` : `hsl(${navy})`,
+                color: isSelected ? 'white' : `hsl(${slate})`,
+                borderColor: isSelected ? `hsl(${teal})` : `hsl(${slate} / 0.12)`,
+                boxShadow: isSelected ? `0 4px 15px -4px hsl(${teal} / 0.4)` : 'none',
                 transform: isSelected ? 'scale(1.05)' : 'scale(1)',
               }}>
               <span className="block text-sm font-extrabold">{opt.value}</span>
-              <span className="block text-[9px] leading-tight mt-0.5 opacity-80 font-medium">{opt.label}</span>
+              <span className="block text-[9px] leading-tight mt-0.5 opacity-75 font-medium">{opt.label}</span>
             </button>
           );
         })}
