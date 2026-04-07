@@ -389,19 +389,19 @@ export type Database = {
         Row: {
           company_id: string | null
           id: string
-          role: string
+          role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           company_id?: string | null
           id?: string
-          role?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           company_id?: string | null
           id?: string
-          role?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: [
@@ -422,7 +422,7 @@ export type Database = {
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user" | "company_user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -549,6 +549,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user", "company_user"],
+    },
   },
 } as const
