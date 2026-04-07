@@ -83,12 +83,31 @@ export default function PublicSurvey() {
       if (cfg.start_date && new Date(cfg.start_date) > new Date()) { setError("Esta pesquisa ainda não começou"); setLoading(false); return; }
       setConfig(cfg);
 
-      const configSectors: string[] = [];
-      if (Array.isArray((data as any).sectors)) {
-        (data as any).sectors.forEach((s: any) => {
-          if (typeof s === "string") configSectors.push(s);
-          else if (s && s.name) configSectors.push(s.name);
-        });
+      let configSectors: string[] = [];
+      const extractSectors = (sectorsData: any) => {
+        const result: string[] = [];
+        if (Array.isArray(sectorsData)) {
+          sectorsData.forEach((s: any) => {
+            if (typeof s === "string") result.push(s);
+            else if (s && s.name) result.push(s.name);
+          });
+        }
+        return result;
+      };
+
+      configSectors = extractSectors((data as any).sectors);
+
+      // If form has no sectors, check the company's placeholder config
+      if (configSectors.length === 0 && (data as any).cnpj) {
+        const { data: placeholder } = await supabase
+          .from("google_forms_config")
+          .select("sectors")
+          .eq("cnpj", (data as any).cnpj)
+          .eq("spreadsheet_id", "__placeholder__")
+          .maybeSingle();
+        if (placeholder) {
+          configSectors = extractSectors((placeholder as any).sectors);
+        }
       }
       setSectors([...new Set(configSectors)]);
 
