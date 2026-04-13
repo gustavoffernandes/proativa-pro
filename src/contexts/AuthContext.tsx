@@ -12,6 +12,7 @@ interface AuthContextType {
   userCompanyId: string | null;
   loading: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   isCompanyUser: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
