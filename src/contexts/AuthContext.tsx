@@ -3,7 +3,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-export type AppRole = "admin" | "user" | "company_user";
+export type AppRole = "admin" | "user" | "company_user" | "super_admin";
 
 interface AuthContextType {
   user: User | null;
