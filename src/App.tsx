@@ -71,6 +71,11 @@ const App = () => (
               <Route path="/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/ajuda" element={<ProtectedRoute><Help /></ProtectedRoute>} />
               <Route path="/assinatura" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
+              {/* Backoffice - Super Admin only */}
+              <Route path="/backoffice" element={<ProtectedBackofficeRoute><BackofficeDashboard /></ProtectedBackofficeRoute>} />
+              <Route path="/backoffice/contas" element={<ProtectedBackofficeRoute><BackofficeAccounts /></ProtectedBackofficeRoute>} />
+              <Route path="/backoffice/assinaturas" element={<ProtectedBackofficeRoute><BackofficeSubscriptions /></ProtectedBackofficeRoute>} />
+              <Route path="/backoffice/configuracoes" element={<ProtectedBackofficeRoute><BackofficeSettings /></ProtectedBackofficeRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </ErrorBoundary>
