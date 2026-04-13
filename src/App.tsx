@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { ProtectedBackofficeRoute } from "@/components/backoffice/ProtectedBackofficeRoute";
 import Index from "./pages/Index";
 import SurveyAnalysis from "./pages/SurveyAnalysis";
 import CompanyComparison from "./pages/CompanyComparison";
@@ -28,10 +27,6 @@ import Users from "./pages/Users";
 import Help from "./pages/Help";
 import Subscription from "./pages/Subscription";
 import PublicSurvey from "./pages/PublicSurvey";
-import BackofficeDashboard from "./pages/backoffice/BackofficeDashboard";
-import BackofficeAccounts from "./pages/backoffice/BackofficeAccounts";
-import BackofficeSubscriptions from "./pages/backoffice/BackofficeSubscriptions";
-import BackofficeSettings from "./pages/backoffice/BackofficeSettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,11 +66,6 @@ const App = () => (
               <Route path="/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/ajuda" element={<ProtectedRoute><Help /></ProtectedRoute>} />
               <Route path="/assinatura" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
-              {/* Backoffice - Super Admin only */}
-              <Route path="/backoffice" element={<ProtectedBackofficeRoute><BackofficeDashboard /></ProtectedBackofficeRoute>} />
-              <Route path="/backoffice/contas" element={<ProtectedBackofficeRoute><BackofficeAccounts /></ProtectedBackofficeRoute>} />
-              <Route path="/backoffice/assinaturas" element={<ProtectedBackofficeRoute><BackofficeSubscriptions /></ProtectedBackofficeRoute>} />
-              <Route path="/backoffice/configuracoes" element={<ProtectedBackofficeRoute><BackofficeSettings /></ProtectedBackofficeRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </ErrorBoundary>

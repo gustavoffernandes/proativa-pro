@@ -6,15 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 const Login = forwardRef<HTMLDivElement>(function Login(_props, ref) {
-  const { user, loading, signIn, isSuperAdmin } = useAuth();
+  const { user, loading, signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  if (!loading && user) {
-    return <Navigate to={isSuperAdmin ? "/backoffice" : "/"} replace />;
-  }
+  if (!loading && user) return <Navigate to="/" replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
