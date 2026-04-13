@@ -13,6 +13,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isCompanyUser: boolean;
+  isSuperAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -142,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       isAdmin: role === "admin",
       isCompanyUser: role === "company_user",
+      isSuperAdmin: role === "super_admin",
       signIn,
       signOut,
     }}>
