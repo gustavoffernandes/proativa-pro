@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ProtectedBackofficeRoute } from "@/components/backoffice/ProtectedBackofficeRoute";
 import Index from "./pages/Index";
 import SurveyAnalysis from "./pages/SurveyAnalysis";
 import CompanyComparison from "./pages/CompanyComparison";
@@ -27,6 +28,10 @@ import Users from "./pages/Users";
 import Help from "./pages/Help";
 import Subscription from "./pages/Subscription";
 import PublicSurvey from "./pages/PublicSurvey";
+import BackofficeDashboard from "./pages/backoffice/BackofficeDashboard";
+import BackofficeAccounts from "./pages/backoffice/BackofficeAccounts";
+import BackofficeSubscriptions from "./pages/backoffice/BackofficeSubscriptions";
+import BackofficeSettings from "./pages/backoffice/BackofficeSettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
