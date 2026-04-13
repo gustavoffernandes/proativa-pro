@@ -27,10 +27,6 @@ import Users from "./pages/Users";
 import Help from "./pages/Help";
 import Subscription from "./pages/Subscription";
 import PublicSurvey from "./pages/PublicSurvey";
-import SuperAdminDashboard from "./pages/super-admin/SuperAdminDashboard";
-import SuperAdminAccounts from "./pages/super-admin/SuperAdminAccounts";
-import SuperAdminSubscriptions from "./pages/super-admin/SuperAdminSubscriptions";
-import SuperAdminAuditLogs from "./pages/super-admin/SuperAdminAuditLogs";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -70,11 +66,6 @@ const App = () => (
               <Route path="/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/ajuda" element={<ProtectedRoute><Help /></ProtectedRoute>} />
               <Route path="/assinatura" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
-              {/* Super Admin Routes */}
-              <Route path="/super-admin" element={<ProtectedRoute requireSuperAdmin><SuperAdminDashboard /></ProtectedRoute>} />
-              <Route path="/super-admin/contas" element={<ProtectedRoute requireSuperAdmin><SuperAdminAccounts /></ProtectedRoute>} />
-              <Route path="/super-admin/assinaturas" element={<ProtectedRoute requireSuperAdmin><SuperAdminSubscriptions /></ProtectedRoute>} />
-              <Route path="/super-admin/logs" element={<ProtectedRoute requireSuperAdmin><SuperAdminAuditLogs /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </ErrorBoundary>

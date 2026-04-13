@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
       .from("user_roles")
       .select("role")
       .eq("user_id", callerUser.id)
-      .in("role", ["admin", "super_admin"])
+      .eq("role", "admin")
       .maybeSingle();
 
     if (!roleData) {
@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     if (!email || !password) return new Response(JSON.stringify({ error: "E-mail e senha são obrigatórios" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (password.length < 8) return new Response(JSON.stringify({ error: "A senha deve ter pelo menos 8 caracteres" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const allowedRoles = ["admin", "user", "company_user", "super_admin"];
+    const allowedRoles = ["admin", "user", "company_user"];
     if (!allowedRoles.includes(role)) return new Response(JSON.stringify({ error: "Role inválido" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (role === "company_user" && !company_id) return new Response(JSON.stringify({ error: "Para 'Usuário Empresa', selecione uma empresa." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
