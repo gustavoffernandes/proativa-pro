@@ -382,7 +382,7 @@ export default function Forms() {
                         <td className="px-4 py-3 text-center font-medium text-foreground">{count}</td>
                         <td className="px-4 py-3 text-center">
                           <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold", status.bg, status.color)}>
-                            {config.is_active ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />} {status.label}
+                            {status.label}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center">
