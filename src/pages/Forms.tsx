@@ -414,7 +414,7 @@ export default function Forms() {
                         <p className="text-xs text-muted-foreground">{config.company_name}</p>
                       </div>
                       <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold shrink-0", status.bg, status.color)}>
-                        {config.is_active ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />} {status.label}
+                        {status.label}
                       </span>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -422,7 +422,7 @@ export default function Forms() {
                       <span className="font-medium text-foreground">{count} respostas</span>
                     </div>
                     <div className="flex items-center gap-1 pt-1 border-t border-border">
-                      <button onClick={() => copyLink(config.id)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Copy className="h-3 w-3" /> Copiar</button>
+                      <button onClick={() => copyLink(config.id, config.company_name)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Copy className="h-3 w-3" /> Copiar</button>
                       <button onClick={() => handleViewResponses(config.id)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Eye className="h-3 w-3" /> Ver</button>
                       <button onClick={() => handleDownloadPDF(config)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Download className="h-3 w-3" /> PDF</button>
                       <button onClick={() => startEdit(config)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Edit2 className="h-3 w-3" /> Editar</button>
