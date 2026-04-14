@@ -387,7 +387,7 @@ export default function Forms() {
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-1">
-                            <button onClick={() => copyLink(config.id)} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Copiar link"><Copy className="h-3.5 w-3.5" /></button>
+                            <button onClick={() => copyLink(config.id, config.company_name)} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Copiar link"><Copy className="h-3.5 w-3.5" /></button>
                             <button onClick={() => handleViewResponses(config.id)} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Ver respostas"><Eye className="h-3.5 w-3.5" /></button>
                             <button onClick={() => startEdit(config)} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Editar"><Edit2 className="h-3.5 w-3.5" /></button>
                             <button onClick={() => handleDownloadPDF(config)} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Gerar PDF"><Download className="h-3.5 w-3.5" /></button>
