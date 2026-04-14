@@ -241,6 +241,48 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          max_companies: number
+          max_responses_per_month: number
+          max_users: number
+          plan_name: string
+          starts_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_companies?: number
+          max_responses_per_month?: number
+          max_users?: number
+          plan_name?: string
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_companies?: number
+          max_responses_per_month?: number
+          max_users?: number
+          plan_name?: string
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       survey_responses: {
         Row: {
           age: number | null
@@ -422,7 +464,7 @@ export type Database = {
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "user" | "company_user"
+      app_role: "admin" | "user" | "company_user" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -550,7 +592,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "company_user"],
+      app_role: ["admin", "user", "company_user", "super_admin"],
     },
   },
 } as const
