@@ -168,12 +168,20 @@ export type Database = {
       }
       google_forms_config: {
         Row: {
+          address_city: string | null
+          address_state: string | null
+          address_street: string | null
+          address_zip: string | null
           cnpj: string
           company_name: string
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
           created_at: string
           description: string | null
           employee_count: number | null
           end_date: string | null
+          form_status: string
           form_title: string | null
           form_url: string | null
           id: string
@@ -192,12 +200,20 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          address_city?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
           cnpj: string
           company_name: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string
           description?: string | null
           employee_count?: number | null
           end_date?: string | null
+          form_status?: string
           form_title?: string | null
           form_url?: string | null
           id?: string
@@ -216,12 +232,20 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          address_city?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
           cnpj?: string
           company_name?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string
           description?: string | null
           employee_count?: number | null
           end_date?: string | null
+          form_status?: string
           form_title?: string | null
           form_url?: string | null
           id?: string

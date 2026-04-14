@@ -164,7 +164,7 @@ export function useSurveyData() {
       id: r.id,
       configId: r.config_id,
       companyId: configIdToCompanyKey.get(r.config_id) || r.config_id,
-      name: r.respondent_name || "Anônimo",
+      name: r.respondent_name || `RESP${r.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`,
       sex: (r.sex === "Masculino" || r.sex === "Feminino") ? r.sex : "Prefiro não declarar",
       age: r.age || 0,
       sector: r.sector ? r.sector.charAt(0).toUpperCase() + r.sector.slice(1).toLowerCase() : "Não informado",
