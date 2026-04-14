@@ -78,7 +78,7 @@ export default function PublicSurvey() {
         .maybeSingle();
       if (err || !data) { setError("Pesquisa não encontrada"); setLoading(false); return; }
       const cfg = data as any as FormConfig;
-      if (!cfg.is_active) { setError("Esta pesquisa não está mais ativa"); setLoading(false); return; }
+      if (!cfg.is_active) { setError("Esta pesquisa não está mais ativa. Status atual: " + ((data as any).form_status === "pausada" ? "Pausada" : (data as any).form_status === "rascunho" ? "Rascunho" : "Encerrada")); setLoading(false); return; }
       if (cfg.end_date && new Date(cfg.end_date) < new Date()) { setError("O prazo desta pesquisa encerrou"); setLoading(false); return; }
       if (cfg.start_date && new Date(cfg.start_date) > new Date()) { setError("Esta pesquisa ainda não começou"); setLoading(false); return; }
       setConfig(cfg);
