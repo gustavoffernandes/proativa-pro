@@ -24,8 +24,12 @@ interface FormConfig {
   sectors: any[];
 }
 
-function generateSurveyLink(formId: string) {
-  return `${window.location.origin}/pesquisa/${formId}`;
+function generateSurveyLink(formId: string, companyName?: string) {
+  const slug = companyName 
+    ? companyName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+    : "";
+  const shortId = formId.substring(0, 8);
+  return `${window.location.origin}/pesquisa/${shortId}${slug ? `-${slug}` : ""}/${formId}`;
 }
 
 export default function Forms() {
@@ -41,7 +45,7 @@ export default function Forms() {
     instructions: "Esta pesquisa é anônima e confidencial. Suas respostas serão utilizadas para melhorar o ambiente de trabalho. Por favor, responda com sinceridade.",
     start_date: "",
     end_date: "",
-    is_active: true,
+    form_status: "ativa",
     is_anonymous: true,
     require_cpf: false,
     require_consent: true,
@@ -78,7 +82,7 @@ export default function Forms() {
     setFormData({
       company_cnpj: "", form_title: "", description: "",
       instructions: "Esta pesquisa é anônima e confidencial. Suas respostas serão utilizadas para melhorar o ambiente de trabalho. Por favor, responda com sinceridade.",
-      start_date: "", end_date: "", is_active: true, is_anonymous: true,
+      start_date: "", end_date: "", form_status: "ativa", is_anonymous: true,
       require_cpf: false, require_consent: true, require_password: false, survey_password: "",
     });
     setEditingId(null);
@@ -101,7 +105,8 @@ export default function Forms() {
         form_title: data.form_title,
         spreadsheet_id: "__internal__",
         sheet_name: "internal",
-        is_active: data.is_active,
+        is_active: data.form_status === "ativa",
+        form_status: data.form_status,
         description: data.description || "",
         instructions: data.instructions || "",
         start_date: data.start_date || null,
@@ -145,8 +150,8 @@ export default function Forms() {
     },
   });
 
-  const copyLink = (id: string) => {
-    navigator.clipboard.writeText(generateSurveyLink(id));
+  const copyLink = (id: string, companyName?: string) => {
+    navigator.clipboard.writeText(generateSurveyLink(id, companyName));
     toast({ title: "Link copiado!" });
   };
 
@@ -191,7 +196,7 @@ export default function Forms() {
       instructions: cfg.instructions || "Esta pesquisa é anônima e confidencial. Suas respostas serão utilizadas para melhorar o ambiente de trabalho. Por favor, responda com sinceridade.",
       start_date: cfg.start_date || "",
       end_date: cfg.end_date || "",
-      is_active: config.is_active,
+      form_status: cfg.form_status || (config.is_active ? "ativa" : "encerrada"),
       is_anonymous: cfg.is_anonymous ?? true,
       require_cpf: false,
       require_consent: cfg.require_consent ?? true,
@@ -203,8 +208,14 @@ export default function Forms() {
   };
 
   const getStatus = (config: FormConfig) => {
-    if (!config.is_active) return { label: "Inativa", color: "text-muted-foreground", bg: "bg-muted" };
-    return { label: "Ativa", color: "text-success", bg: "bg-success/10" };
+    const status = (config as any).form_status || (config.is_active ? "ativa" : "encerrada");
+    const statusMap: Record<string, { label: string; color: string; bg: string }> = {
+      ativa: { label: "Ativa", color: "text-success", bg: "bg-success/10" },
+      rascunho: { label: "Rascunho", color: "text-muted-foreground", bg: "bg-muted" },
+      pausada: { label: "Pausada", color: "text-warning", bg: "bg-warning/10" },
+      encerrada: { label: "Encerrada", color: "text-destructive", bg: "bg-destructive/10" },
+    };
+    return statusMap[status] || statusMap.ativa;
   };
 
   return (
@@ -280,12 +291,14 @@ export default function Forms() {
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Configurações</h4>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-foreground">Status</label>
-                  <button onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
-                    className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-colors",
-                      formData.is_active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground")}>
-                    {formData.is_active ? "Ativa" : "Inativa"}
-                  </button>
+                  <label className="text-sm font-medium text-foreground">Status do Formulário</label>
+                  <select value={formData.form_status} onChange={e => setFormData({ ...formData, form_status: e.target.value })}
+                    className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm">
+                    <option value="ativa">Ativa</option>
+                    <option value="rascunho">Rascunho</option>
+                    <option value="pausada">Pausada</option>
+                    <option value="encerrada">Encerrada</option>
+                  </select>
                 </div>
                 <div className="flex items-start gap-3 p-3 rounded-lg border border-border">
                   <Checkbox checked={formData.is_anonymous} onCheckedChange={(v) => setFormData({ ...formData, is_anonymous: !!v })} />
@@ -317,8 +330,8 @@ export default function Forms() {
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link da Pesquisa</h4>
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border border-border">
                   <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-xs text-foreground truncate flex-1">{generateSurveyLink(editingId)}</span>
-                  <button onClick={() => copyLink(editingId)} className="flex items-center gap-1 px-3 py-1 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors shrink-0">
+                  <span className="text-xs text-foreground truncate flex-1">{generateSurveyLink(editingId, registeredCompanies.find(c => c.cnpj === formData.company_cnpj)?.name)}</span>
+                  <button onClick={() => copyLink(editingId, registeredCompanies.find(c => c.cnpj === formData.company_cnpj)?.name)} className="flex items-center gap-1 px-3 py-1 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors shrink-0">
                     <Copy className="h-3 w-3" /> Copiar Link
                   </button>
                 </div>
@@ -369,12 +382,12 @@ export default function Forms() {
                         <td className="px-4 py-3 text-center font-medium text-foreground">{count}</td>
                         <td className="px-4 py-3 text-center">
                           <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold", status.bg, status.color)}>
-                            {config.is_active ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />} {status.label}
+                            {status.label}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-1">
-                            <button onClick={() => copyLink(config.id)} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Copiar link"><Copy className="h-3.5 w-3.5" /></button>
+                            <button onClick={() => copyLink(config.id, config.company_name)} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Copiar link"><Copy className="h-3.5 w-3.5" /></button>
                             <button onClick={() => handleViewResponses(config.id)} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Ver respostas"><Eye className="h-3.5 w-3.5" /></button>
                             <button onClick={() => startEdit(config)} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Editar"><Edit2 className="h-3.5 w-3.5" /></button>
                             <button onClick={() => handleDownloadPDF(config)} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Gerar PDF"><Download className="h-3.5 w-3.5" /></button>
@@ -401,7 +414,7 @@ export default function Forms() {
                         <p className="text-xs text-muted-foreground">{config.company_name}</p>
                       </div>
                       <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold shrink-0", status.bg, status.color)}>
-                        {config.is_active ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />} {status.label}
+                        {status.label}
                       </span>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -409,7 +422,7 @@ export default function Forms() {
                       <span className="font-medium text-foreground">{count} respostas</span>
                     </div>
                     <div className="flex items-center gap-1 pt-1 border-t border-border">
-                      <button onClick={() => copyLink(config.id)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Copy className="h-3 w-3" /> Copiar</button>
+                      <button onClick={() => copyLink(config.id, config.company_name)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Copy className="h-3 w-3" /> Copiar</button>
                       <button onClick={() => handleViewResponses(config.id)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Eye className="h-3 w-3" /> Ver</button>
                       <button onClick={() => handleDownloadPDF(config)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Download className="h-3 w-3" /> PDF</button>
                       <button onClick={() => startEdit(config)} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Edit2 className="h-3 w-3" /> Editar</button>

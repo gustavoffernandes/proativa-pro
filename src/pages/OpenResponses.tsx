@@ -56,7 +56,7 @@ export default function OpenResponses() {
           map[qId].responses.push({
             id: r.id,
             answer: answer.trim(),
-            name: r.respondent_name,
+            name: r.respondent_name || `RESP${r.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`,
             sector: r.sector,
             date: r.response_timestamp,
           });
@@ -132,9 +132,7 @@ export default function OpenResponses() {
                       <div key={resp.id + "-" + i} className="rounded-xl border bg-muted/30 p-4 space-y-2">
                         <p className="text-sm text-foreground leading-relaxed">&ldquo;{resp.answer}&rdquo;</p>
                         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                          {resp.name && (
-                            <span className="flex items-center gap-1"><User className="h-3 w-3" />{resp.name}</span>
-                          )}
+                          <span className="flex items-center gap-1"><User className="h-3 w-3" />{resp.name}</span>
                           {resp.sector && (
                             <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{resp.sector}</span>
                           )}

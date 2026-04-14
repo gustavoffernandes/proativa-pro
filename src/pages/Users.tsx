@@ -209,7 +209,7 @@ export default function Users() {
         <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
           <div className="p-4 border-b border-border flex items-center justify-between">
             <h3 className="text-sm font-semibold text-card-foreground">Lista de Usuários</h3>
-            <span className="text-xs text-muted-foreground">{userRoles.length} usuário(s)</span>
+            <span className="text-xs text-muted-foreground">{userRoles.length}/{userLimit} usuário(s)</span>
           </div>
 
           {isLoading ? (
@@ -244,17 +244,30 @@ export default function Users() {
                           <td className="px-4 py-3 text-xs text-muted-foreground">{ur.email || "—"}</td>
                           <td className="px-4 py-3 text-center">
                             {isEditing ? (
-                              <select value={editingRole} onChange={e => setEditingRole(e.target.value)} className="rounded border border-border bg-background px-2 py-1 text-xs">
-                                <option value="admin">Administrador</option>
-                                <option value="user">Usuário Geral</option>
-                                <option value="company_user">Usuário Empresa</option>
-                              </select>
+                              <div className="space-y-1">
+                                <select value={editingRole} onChange={e => setEditingRole(e.target.value)} className="rounded border border-border bg-background px-2 py-1 text-xs">
+                                  <option value="admin">Administrador</option>
+                                  <option value="user">Usuário Geral</option>
+                                  <option value="company_user">Usuário Empresa</option>
+                                </select>
+                                {editingRole === "company_user" && (
+                                  <select value={editingCompanyId} onChange={e => setEditingCompanyId(e.target.value)} className="rounded border border-border bg-background px-2 py-1 text-xs w-full">
+                                    <option value="">Selecione empresa...</option>
+                                    {allCompanies.map((c: any) => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+                                  </select>
+                                )}
+                              </div>
                             ) : (
-                              <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                                ur.role === "admin" ? "bg-destructive/10 text-destructive" :
-                                ur.role === "company_user" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
-                                {ROLE_LABEL[ur.role] || ur.role}
-                              </span>
+                              <div>
+                                <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                                  ur.role === "admin" ? "bg-destructive/10 text-destructive" :
+                                  ur.role === "company_user" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
+                                  {ROLE_LABEL[ur.role] || ur.role}
+                                </span>
+                                {ur.role === "company_user" && companyName !== "—" && (
+                                  <p className="text-[10px] text-muted-foreground mt-0.5">{companyName}</p>
+                                )}
+                              </div>
                             )}
                           </td>
                           <td className="px-4 py-3 text-center">

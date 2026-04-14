@@ -110,6 +110,13 @@ export default function Companies() {
         sector: data.formData.sector || null,
         employee_count: data.formData.employee_count ? parseInt(data.formData.employee_count) : null,
         sectors: data.sectors as any,
+        contact_name: data.formData.contact_name || null,
+        contact_email: data.formData.contact_email || null,
+        contact_phone: data.formData.contact_phone || null,
+        address_street: data.formData.address_street || null,
+        address_city: data.formData.address_city || null,
+        address_state: data.formData.address_state || null,
+        address_zip: data.formData.address_zip || null,
       }] as any);
       if (error) throw error;
     },
@@ -134,6 +141,13 @@ export default function Companies() {
         sector: data.sector?.trim() || null,
         employee_count: parsedEmployeeCount,
         sectors: sectors as any,
+        contact_name: data.contact_name || null,
+        contact_email: data.contact_email || null,
+        contact_phone: data.contact_phone || null,
+        address_street: data.address_street || null,
+        address_city: data.address_city || null,
+        address_state: data.address_state || null,
+        address_zip: data.address_zip || null,
       };
       const { error } = await (supabase.from("google_forms_config") as any).update(updatePayload).eq("cnpj", cnpj);
       if (error) throw error;
@@ -189,13 +203,19 @@ export default function Companies() {
   };
 
   const startEditCompany = (company: CompanyEntry) => {
+    const cfg = configs.find((c: any) => c.cnpj === company.cnpj && c.spreadsheet_id === "__placeholder__") as any;
     setEditingCnpj(company.cnpj);
     setEditData({
       name: company.company_name,
       sector: company.sector || "",
       employee_count: company.employee_count ? String(company.employee_count) : "",
-      contact_name: "", contact_email: "", contact_phone: "",
-      address_street: "", address_city: "", address_state: "", address_zip: "",
+      contact_name: cfg?.contact_name || "",
+      contact_email: cfg?.contact_email || "",
+      contact_phone: cfg?.contact_phone || "",
+      address_street: cfg?.address_street || "",
+      address_city: cfg?.address_city || "",
+      address_state: cfg?.address_state || "",
+      address_zip: cfg?.address_zip || "",
     });
     setEditSectors([...company.sectors]);
     setEditingSectorIdx(null);

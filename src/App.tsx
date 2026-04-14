@@ -47,6 +47,7 @@ const App = () => (
           <ErrorBoundary>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/pesquisa/:slug/:id" element={<PublicSurvey />} />
               <Route path="/pesquisa/:id" element={<PublicSurvey />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
