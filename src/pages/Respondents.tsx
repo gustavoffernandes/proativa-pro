@@ -40,11 +40,12 @@ export default function Respondents() {
   const { data: sessions = [], isLoading: loadingSessions } = useQuery({
     queryKey: ["survey-sessions"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("survey_sessions") as any).select("*").eq("status", "in_progress");
+      const { data, error } = await (supabase.from("survey_sessions") as any).select("*").neq("status", "completed");
       if (error) throw error;
       return (data || []) as SurveySession[];
     },
     staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000,
   });
 
   const allRows = useMemo(() => {
@@ -56,13 +57,13 @@ export default function Respondents() {
       const form = formConfigs?.find(f => f.configId === r.configId);
       rows.push({
         type: "completed",
-        name: r.name || "Anônimo",
+        name: r.name || `RESP${r.id?.replace(/-/g, '').substring(0, 8).toUpperCase() || '0000'}`,
         companyName: company?.name || "—",
         companyId: r.companyId,
         configId: r.configId,
         sector: r.sector || "—",
         formTitle: form?.title || "—",
-        date: r.responseTimestamp ? new Date(r.responseTimestamp).toLocaleDateString("pt-BR") : "—",
+        date: r.responseTimestamp ? new Date(r.responseTimestamp).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—",
       });
     });
 
@@ -76,13 +77,13 @@ export default function Respondents() {
       });
       rows.push({
         type: "in_progress",
-        name: s.respondent_name || "Anônimo",
+        name: s.respondent_name || `RESP${s.id?.replace(/-/g, '').substring(0, 8).toUpperCase() || '0000'}`,
         companyName: companyKey?.name || "—",
         companyId: companyKey?.id || "",
         configId: s.config_id,
         sector: s.sector || "—",
         formTitle: form?.title || "—",
-        date: new Date(s.started_at).toLocaleDateString("pt-BR"),
+        date: new Date(s.started_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }),
       });
     });
 

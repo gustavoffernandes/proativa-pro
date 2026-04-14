@@ -41,7 +41,7 @@ export default function Forms() {
     instructions: "Esta pesquisa é anônima e confidencial. Suas respostas serão utilizadas para melhorar o ambiente de trabalho. Por favor, responda com sinceridade.",
     start_date: "",
     end_date: "",
-    is_active: true,
+    form_status: "ativa",
     is_anonymous: true,
     require_cpf: false,
     require_consent: true,
@@ -78,7 +78,7 @@ export default function Forms() {
     setFormData({
       company_cnpj: "", form_title: "", description: "",
       instructions: "Esta pesquisa é anônima e confidencial. Suas respostas serão utilizadas para melhorar o ambiente de trabalho. Por favor, responda com sinceridade.",
-      start_date: "", end_date: "", is_active: true, is_anonymous: true,
+      start_date: "", end_date: "", form_status: "ativa", is_anonymous: true,
       require_cpf: false, require_consent: true, require_password: false, survey_password: "",
     });
     setEditingId(null);
@@ -101,7 +101,8 @@ export default function Forms() {
         form_title: data.form_title,
         spreadsheet_id: "__internal__",
         sheet_name: "internal",
-        is_active: data.is_active,
+        is_active: data.form_status === "ativa",
+        form_status: data.form_status,
         description: data.description || "",
         instructions: data.instructions || "",
         start_date: data.start_date || null,
@@ -191,7 +192,7 @@ export default function Forms() {
       instructions: cfg.instructions || "Esta pesquisa é anônima e confidencial. Suas respostas serão utilizadas para melhorar o ambiente de trabalho. Por favor, responda com sinceridade.",
       start_date: cfg.start_date || "",
       end_date: cfg.end_date || "",
-      is_active: config.is_active,
+      form_status: cfg.form_status || (config.is_active ? "ativa" : "encerrada"),
       is_anonymous: cfg.is_anonymous ?? true,
       require_cpf: false,
       require_consent: cfg.require_consent ?? true,
@@ -203,8 +204,14 @@ export default function Forms() {
   };
 
   const getStatus = (config: FormConfig) => {
-    if (!config.is_active) return { label: "Inativa", color: "text-muted-foreground", bg: "bg-muted" };
-    return { label: "Ativa", color: "text-success", bg: "bg-success/10" };
+    const status = (config as any).form_status || (config.is_active ? "ativa" : "encerrada");
+    const statusMap: Record<string, { label: string; color: string; bg: string }> = {
+      ativa: { label: "Ativa", color: "text-success", bg: "bg-success/10" },
+      rascunho: { label: "Rascunho", color: "text-muted-foreground", bg: "bg-muted" },
+      pausada: { label: "Pausada", color: "text-warning", bg: "bg-warning/10" },
+      encerrada: { label: "Encerrada", color: "text-destructive", bg: "bg-destructive/10" },
+    };
+    return statusMap[status] || statusMap.ativa;
   };
 
   return (
@@ -280,12 +287,14 @@ export default function Forms() {
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Configurações</h4>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-foreground">Status</label>
-                  <button onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
-                    className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-colors",
-                      formData.is_active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground")}>
-                    {formData.is_active ? "Ativa" : "Inativa"}
-                  </button>
+                  <label className="text-sm font-medium text-foreground">Status do Formulário</label>
+                  <select value={formData.form_status} onChange={e => setFormData({ ...formData, form_status: e.target.value })}
+                    className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm">
+                    <option value="ativa">Ativa</option>
+                    <option value="rascunho">Rascunho</option>
+                    <option value="pausada">Pausada</option>
+                    <option value="encerrada">Encerrada</option>
+                  </select>
                 </div>
                 <div className="flex items-start gap-3 p-3 rounded-lg border border-border">
                   <Checkbox checked={formData.is_anonymous} onCheckedChange={(v) => setFormData({ ...formData, is_anonymous: !!v })} />

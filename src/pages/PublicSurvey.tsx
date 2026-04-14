@@ -222,7 +222,7 @@ export default function PublicSurvey() {
 
   const canProceed = (): boolean => {
     if (step === "consent") return consentAccepted;
-    if (step === "password") return passwordInput === config?.survey_password;
+    if (step === "password") return true; // Always clickable, validation happens on click
     if (step === "demographics") return !!(demographics.sex && demographics.age && demographics.escolaridade && demographics.tempo_empresa && demographics.sector);
     if (step.startsWith("scale-")) {
       const scaleIdx = parseInt(step.split("-")[1]);
