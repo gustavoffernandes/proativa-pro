@@ -24,8 +24,12 @@ interface FormConfig {
   sectors: any[];
 }
 
-function generateSurveyLink(formId: string) {
-  return `${window.location.origin}/pesquisa/${formId}`;
+function generateSurveyLink(formId: string, companyName?: string) {
+  const slug = companyName 
+    ? companyName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+    : "";
+  const shortId = formId.substring(0, 8);
+  return `${window.location.origin}/pesquisa/${shortId}${slug ? `-${slug}` : ""}/${formId}`;
 }
 
 export default function Forms() {
@@ -146,8 +150,8 @@ export default function Forms() {
     },
   });
 
-  const copyLink = (id: string) => {
-    navigator.clipboard.writeText(generateSurveyLink(id));
+  const copyLink = (id: string, companyName?: string) => {
+    navigator.clipboard.writeText(generateSurveyLink(id, companyName));
     toast({ title: "Link copiado!" });
   };
 
