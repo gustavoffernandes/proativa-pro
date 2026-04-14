@@ -330,8 +330,8 @@ export default function Forms() {
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link da Pesquisa</h4>
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border border-border">
                   <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-xs text-foreground truncate flex-1">{generateSurveyLink(editingId)}</span>
-                  <button onClick={() => copyLink(editingId)} className="flex items-center gap-1 px-3 py-1 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors shrink-0">
+                  <span className="text-xs text-foreground truncate flex-1">{generateSurveyLink(editingId, registeredCompanies.find(c => c.cnpj === formData.company_cnpj)?.name)}</span>
+                  <button onClick={() => copyLink(editingId, registeredCompanies.find(c => c.cnpj === formData.company_cnpj)?.name)} className="flex items-center gap-1 px-3 py-1 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors shrink-0">
                     <Copy className="h-3 w-3" /> Copiar Link
                   </button>
                 </div>
