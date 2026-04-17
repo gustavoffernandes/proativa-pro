@@ -265,14 +265,74 @@ export type Database = {
         }
         Relationships: []
       }
+      plans: {
+        Row: {
+          billing_interval: string
+          created_at: string
+          currency: string
+          description: string | null
+          features: Json
+          id: string
+          is_active: boolean
+          max_companies: number
+          max_respondents: number
+          max_surveys: number
+          max_users: number
+          name: string
+          price_cents: number
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          max_companies?: number
+          max_respondents?: number
+          max_surveys?: number
+          max_users?: number
+          name: string
+          price_cents?: number
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          max_companies?: number
+          max_respondents?: number
+          max_surveys?: number
+          max_users?: number
+          name?: string
+          price_cents?: number
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
           expires_at: string | null
+          features: Json
           id: string
           max_companies: number
           max_responses_per_month: number
+          max_surveys: number
           max_users: number
+          plan_id: string | null
           plan_name: string
           starts_at: string
           status: string
@@ -282,10 +342,13 @@ export type Database = {
         Insert: {
           created_at?: string
           expires_at?: string | null
+          features?: Json
           id?: string
           max_companies?: number
           max_responses_per_month?: number
+          max_surveys?: number
           max_users?: number
+          plan_id?: string | null
           plan_name?: string
           starts_at?: string
           status?: string
@@ -295,17 +358,28 @@ export type Database = {
         Update: {
           created_at?: string
           expires_at?: string | null
+          features?: Json
           id?: string
           max_companies?: number
           max_responses_per_month?: number
+          max_surveys?: number
           max_users?: number
+          plan_id?: string | null
           plan_name?: string
           starts_at?: string
           status?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       survey_responses: {
         Row: {
@@ -455,18 +529,21 @@ export type Database = {
         Row: {
           company_id: string | null
           id: string
+          parent_admin_id: string | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           company_id?: string | null
           id?: string
+          parent_admin_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           company_id?: string | null
           id?: string
+          parent_admin_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
@@ -485,6 +562,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_effective_subscription: {
+        Args: { _user_id: string }
+        Returns: {
+          expires_at: string
+          features: Json
+          max_companies: number
+          max_responses_per_month: number
+          max_surveys: number
+          max_users: number
+          owner_user_id: string
+          plan_id: string
+          plan_name: string
+          status: string
+          subscription_id: string
+        }[]
+      }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
     }
     Enums: {
