@@ -119,28 +119,7 @@ Deno.serve(async (req) => {
     const { data, error } = await adminClient.auth.admin.createUser({ email, password, email_confirm: true });
     if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // Determinar parent_admin_id: se o caller for admin (não super_admin) ele vira o pai;
-    // se o caller já for filho de outro admin, herda o mesmo pai.
-    const { data: callerRole } = await adminClient
-      .from("user_roles")
-      .select("role, parent_admin_id")
-      .eq("user_id", callerUser.id)
-      .maybeSingle();
-
-    let parentAdminId: string | null = null;
-    if (callerRole?.role === "admin") {
-      parentAdminId = (callerRole as any).parent_admin_id ?? callerUser.id;
-    } else if (callerRole?.role === "super_admin") {
-      parentAdminId = null; // super_admin cria contas-raiz
-    } else {
-      parentAdminId = (callerRole as any)?.parent_admin_id ?? callerUser.id;
-    }
-
-    const roleInsert: Record<string, unknown> = {
-      user_id: data.user.id,
-      role,
-      parent_admin_id: parentAdminId,
-    };
+    const roleInsert: Record<string, unknown> = { user_id: data.user.id, role };
     if (role === "company_user" && company_id) roleInsert.company_id = company_id;
 
     const { error: roleError } = await adminClient.from("user_roles").insert(roleInsert);
