@@ -3,9 +3,10 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { UserPlus, Loader2, Pencil, Trash2, Check, X, AlertTriangle, Shield, User, Building2 } from "lucide-react";
+import { UserPlus, Loader2, Pencil, Trash2, Check, X, AlertTriangle, Shield, User, Building2, Crown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { usePlans, useUserPlanAssignments } from "@/hooks/usePlans";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
@@ -13,13 +14,13 @@ const ROLE_LABEL: Record<string, string> = {
   company_user: "Usuário Empresa",
 };
 
-const PLAN_LIMITS: Record<string, number> = { starter: 1, professional: 2, enterprise: 5 };
-
 export default function Users() {
   const { user, isAdmin } = useAuth();
   const qc = useQueryClient();
-  const currentPlan = "professional"; // TODO: from subscription
-  const userLimit = PLAN_LIMITS[currentPlan] || 2;
+  const { data: plans = [] } = usePlans();
+  const { data: planAssignments = {} } = useUserPlanAssignments(isAdmin);
+  // Limite de usuários: maior plano disponível (admin gerencia tudo). Caso queira aplicar o plano do admin, ajustar aqui.
+  const userLimit = plans.reduce((max, p) => Math.max(max, p.max_users), 5);
 
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
@@ -112,6 +113,20 @@ export default function Users() {
       toast({ title: "Usuário removido!" });
       qc.invalidateQueries({ queryKey: ["all-user-roles"] });
     } catch (e: any) { toast({ title: "Erro", description: e.message, variant: "destructive" }); }
+  };
+
+  const handleAssignPlan = async (userId: string, planId: string) => {
+    try {
+      const newPlanId = planId === "" ? null : planId;
+      // Garante que existe profile (upsert por user_id)
+      const { error } = await (supabase as any)
+        .from("profiles")
+        .upsert({ user_id: userId, current_plan_id: newPlanId }, { onConflict: "user_id" });
+      if (error) throw error;
+      toast({ title: "Plano atualizado!" });
+      qc.invalidateQueries({ queryKey: ["user-plan-assignments"] });
+      qc.invalidateQueries({ queryKey: ["current-user-plan"] });
+    } catch (e: any) { toast({ title: "Erro ao vincular plano", description: e.message, variant: "destructive" }); }
   };
 
   return (
@@ -226,6 +241,7 @@ export default function Users() {
                       <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Usuário</th>
                       <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Email</th>
                       <th className="px-4 py-3 text-center font-semibold text-muted-foreground">Tipo</th>
+                      <th className="px-4 py-3 text-center font-semibold text-muted-foreground">Plano</th>
                       <th className="px-4 py-3 text-center font-semibold text-muted-foreground">Status</th>
                       <th className="px-4 py-3 text-center font-semibold text-muted-foreground">Ações</th>
                     </tr>
@@ -269,6 +285,18 @@ export default function Users() {
                                 )}
                               </div>
                             )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <select
+                              value={planAssignments[ur.user_id] || ""}
+                              onChange={(e) => handleAssignPlan(ur.user_id, e.target.value)}
+                              className="rounded border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                            >
+                              <option value="">Sem plano</option>
+                              {plans.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                              ))}
+                            </select>
                           </td>
                           <td className="px-4 py-3 text-center">
                             <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success px-2 py-0.5 text-[10px] font-semibold">Ativo</span>
