@@ -115,6 +115,20 @@ export default function Users() {
     } catch (e: any) { toast({ title: "Erro", description: e.message, variant: "destructive" }); }
   };
 
+  const handleAssignPlan = async (userId: string, planId: string) => {
+    try {
+      const newPlanId = planId === "" ? null : planId;
+      // Garante que existe profile (upsert por user_id)
+      const { error } = await (supabase as any)
+        .from("profiles")
+        .upsert({ user_id: userId, current_plan_id: newPlanId }, { onConflict: "user_id" });
+      if (error) throw error;
+      toast({ title: "Plano atualizado!" });
+      qc.invalidateQueries({ queryKey: ["user-plan-assignments"] });
+      qc.invalidateQueries({ queryKey: ["current-user-plan"] });
+    } catch (e: any) { toast({ title: "Erro ao vincular plano", description: e.message, variant: "destructive" }); }
+  };
+
   return (
     <DashboardLayout>
       <div className="animate-fade-in space-y-6">
