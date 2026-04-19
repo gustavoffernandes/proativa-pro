@@ -241,6 +241,7 @@ export default function Users() {
                       <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Usuário</th>
                       <th className="px-4 py-3 text-left font-semibold text-muted-foreground">Email</th>
                       <th className="px-4 py-3 text-center font-semibold text-muted-foreground">Tipo</th>
+                      <th className="px-4 py-3 text-center font-semibold text-muted-foreground">Plano</th>
                       <th className="px-4 py-3 text-center font-semibold text-muted-foreground">Status</th>
                       <th className="px-4 py-3 text-center font-semibold text-muted-foreground">Ações</th>
                     </tr>
