@@ -295,9 +295,73 @@ export type Database = {
         }
         Relationships: []
       }
+      plans: {
+        Row: {
+          created_at: string
+          description: string
+          feature_excel_export: boolean
+          feature_pdf_report: boolean
+          feature_priority_support: boolean
+          feature_risk_matrix: boolean
+          feature_sector_filters: boolean
+          id: string
+          is_active: boolean
+          is_highlight: boolean
+          max_companies: number
+          max_respondents: number
+          max_surveys: number
+          max_users: number
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          feature_excel_export?: boolean
+          feature_pdf_report?: boolean
+          feature_priority_support?: boolean
+          feature_risk_matrix?: boolean
+          feature_sector_filters?: boolean
+          id?: string
+          is_active?: boolean
+          is_highlight?: boolean
+          max_companies?: number
+          max_respondents?: number
+          max_surveys?: number
+          max_users?: number
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          feature_excel_export?: boolean
+          feature_pdf_report?: boolean
+          feature_priority_support?: boolean
+          feature_risk_matrix?: boolean
+          feature_sector_filters?: boolean
+          id?: string
+          is_active?: boolean
+          is_highlight?: boolean
+          max_companies?: number
+          max_respondents?: number
+          max_surveys?: number
+          max_users?: number
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
+          current_plan_id: string | null
           full_name: string | null
           id: string
           last_payment_at: string | null
@@ -311,6 +375,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_plan_id?: string | null
           full_name?: string | null
           id?: string
           last_payment_at?: string | null
@@ -324,6 +389,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_plan_id?: string | null
           full_name?: string | null
           id?: string
           last_payment_at?: string | null
@@ -335,7 +401,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_current_plan_id_fkey"
+            columns: ["current_plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       survey_responses: {
         Row: {
