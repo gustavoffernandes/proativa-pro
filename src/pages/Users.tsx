@@ -287,6 +287,18 @@ export default function Users() {
                             )}
                           </td>
                           <td className="px-4 py-3 text-center">
+                            <select
+                              value={planAssignments[ur.user_id] || ""}
+                              onChange={(e) => handleAssignPlan(ur.user_id, e.target.value)}
+                              className="rounded border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                            >
+                              <option value="">Sem plano</option>
+                              {plans.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="px-4 py-3 text-center">
                             <span className="inline-flex items-center gap-1 rounded-full bg-success/10 text-success px-2 py-0.5 text-[10px] font-semibold">Ativo</span>
                           </td>
                           <td className="px-4 py-3 text-center">
