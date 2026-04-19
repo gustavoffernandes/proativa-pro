@@ -166,6 +166,36 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          phone: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          phone?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          phone?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       google_forms_config: {
         Row: {
           address_city: string | null
@@ -265,43 +295,43 @@ export type Database = {
         }
         Relationships: []
       }
-      subscriptions: {
+      profiles: {
         Row: {
           created_at: string
-          expires_at: string | null
+          full_name: string | null
           id: string
-          max_companies: number
-          max_responses_per_month: number
-          max_users: number
-          plan_name: string
-          starts_at: string
-          status: string
+          last_payment_at: string | null
+          last_payment_id: string | null
+          phone: string | null
+          plan_cycle: string | null
+          plan_id: string | null
+          plan_status: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          expires_at?: string | null
+          full_name?: string | null
           id?: string
-          max_companies?: number
-          max_responses_per_month?: number
-          max_users?: number
-          plan_name?: string
-          starts_at?: string
-          status?: string
+          last_payment_at?: string | null
+          last_payment_id?: string | null
+          phone?: string | null
+          plan_cycle?: string | null
+          plan_id?: string | null
+          plan_status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
-          expires_at?: string | null
+          full_name?: string | null
           id?: string
-          max_companies?: number
-          max_responses_per_month?: number
-          max_users?: number
-          plan_name?: string
-          starts_at?: string
-          status?: string
+          last_payment_at?: string | null
+          last_payment_id?: string | null
+          phone?: string | null
+          plan_cycle?: string | null
+          plan_id?: string | null
+          plan_status?: string
           updated_at?: string
           user_id?: string
         }
@@ -485,10 +515,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      grant_admin_after_payment: { Args: never; Returns: boolean }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "user" | "company_user" | "super_admin"
+      app_role: "admin" | "user" | "company_user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -616,7 +647,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "company_user", "super_admin"],
+      app_role: ["admin", "user", "company_user"],
     },
   },
 } as const
