@@ -170,29 +170,35 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          full_name: string
           id: string
+          ip_address: string | null
           message: string
-          name: string
           phone: string | null
           status: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           email: string
+          full_name: string
           id?: string
+          ip_address?: string | null
           message: string
-          name: string
           phone?: string | null
           status?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
           email?: string
+          full_name?: string
           id?: string
+          ip_address?: string | null
           message?: string
-          name?: string
           phone?: string | null
           status?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -297,63 +303,48 @@ export type Database = {
       }
       plans: {
         Row: {
+          active: boolean
           created_at: string
-          description: string
-          feature_excel_export: boolean
-          feature_pdf_report: boolean
-          feature_priority_support: boolean
-          feature_risk_matrix: boolean
-          feature_sector_filters: boolean
+          description: string | null
+          features: Json
           id: string
-          is_active: boolean
-          is_highlight: boolean
           max_companies: number
           max_respondents: number
-          max_surveys: number
+          max_surveys_per_month: number
           max_users: number
           name: string
-          slug: string
-          sort_order: number
+          price_annual: number
+          price_monthly: number
           updated_at: string
         }
         Insert: {
+          active?: boolean
           created_at?: string
-          description?: string
-          feature_excel_export?: boolean
-          feature_pdf_report?: boolean
-          feature_priority_support?: boolean
-          feature_risk_matrix?: boolean
-          feature_sector_filters?: boolean
-          id?: string
-          is_active?: boolean
-          is_highlight?: boolean
+          description?: string | null
+          features?: Json
+          id: string
           max_companies?: number
           max_respondents?: number
-          max_surveys?: number
+          max_surveys_per_month?: number
           max_users?: number
           name: string
-          slug: string
-          sort_order?: number
+          price_annual?: number
+          price_monthly?: number
           updated_at?: string
         }
         Update: {
+          active?: boolean
           created_at?: string
-          description?: string
-          feature_excel_export?: boolean
-          feature_pdf_report?: boolean
-          feature_priority_support?: boolean
-          feature_risk_matrix?: boolean
-          feature_sector_filters?: boolean
+          description?: string | null
+          features?: Json
           id?: string
-          is_active?: boolean
-          is_highlight?: boolean
           max_companies?: number
           max_respondents?: number
-          max_surveys?: number
+          max_surveys_per_month?: number
           max_users?: number
           name?: string
-          slug?: string
-          sort_order?: number
+          price_annual?: number
+          price_monthly?: number
           updated_at?: string
         }
         Relationships: []
@@ -361,55 +352,83 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          current_plan_id: string | null
-          full_name: string | null
+          email: string
+          full_name: string
           id: string
-          last_payment_at: string | null
-          last_payment_id: string | null
           phone: string | null
-          plan_cycle: string | null
-          plan_id: string | null
-          plan_status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          amount: number
+          created_at: string
+          cycle: Database["public"]["Enums"]["billing_cycle"]
+          id: string
+          metadata: Json
+          mp_external_reference: string | null
+          mp_payment_id: string | null
+          mp_preference_id: string | null
+          plan_id: string
+          provisioned_at: string | null
+          provisioned_user_id: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          temp_password_sent_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          amount: number
           created_at?: string
-          current_plan_id?: string | null
-          full_name?: string | null
+          cycle: Database["public"]["Enums"]["billing_cycle"]
           id?: string
-          last_payment_at?: string | null
-          last_payment_id?: string | null
-          phone?: string | null
-          plan_cycle?: string | null
-          plan_id?: string | null
-          plan_status?: string
+          metadata?: Json
+          mp_external_reference?: string | null
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          plan_id: string
+          provisioned_at?: string | null
+          provisioned_user_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          temp_password_sent_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          amount?: number
           created_at?: string
-          current_plan_id?: string | null
-          full_name?: string | null
+          cycle?: Database["public"]["Enums"]["billing_cycle"]
           id?: string
-          last_payment_at?: string | null
-          last_payment_id?: string | null
-          phone?: string | null
-          plan_cycle?: string | null
-          plan_id?: string | null
-          plan_status?: string
+          metadata?: Json
+          mp_external_reference?: string | null
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          plan_id?: string
+          provisioned_at?: string | null
+          provisioned_user_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          temp_password_sent_at?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_current_plan_id_fkey"
-            columns: ["current_plan_id"]
-            isOneToOne: false
-            referencedRelation: "plans"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       survey_responses: {
         Row: {
@@ -555,6 +574,50 @@ export type Database = {
           },
         ]
       }
+      system_accounts: {
+        Row: {
+          activated_at: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          plan_id: string
+          status: string
+          subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_id: string
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated_at?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan_id?: string
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_accounts_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           company_id: string | null
@@ -589,11 +652,46 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      grant_admin_after_payment: { Args: never; Returns: boolean }
-      has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
+      get_effective_subscription: {
+        Args: { _user_id: string }
+        Returns: {
+          expires_at: string
+          features: Json
+          max_companies: number
+          max_responses_per_month: number
+          max_surveys: number
+          max_users: number
+          owner_user_id: string
+          plan_id: string
+          plan_name: string
+          status: string
+          subscription_id: string
+        }[]
+      }
+      has_role:
+        | {
+            Args: {
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | { Args: { _role: string; _user_id: string }; Returns: boolean }
+      promote_to_admin: { Args: { _user_id: string }; Returns: undefined }
+      provision_subscription_admin: {
+        Args: { _subscription_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
-      app_role: "admin" | "user" | "company_user"
+      app_role: "admin" | "user" | "company_user" | "super_admin"
+      billing_cycle: "monthly" | "annual"
+      subscription_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "cancelled"
+        | "refunded"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -721,7 +819,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "company_user"],
+      app_role: ["admin", "user", "company_user", "super_admin"],
+      billing_cycle: ["monthly", "annual"],
+      subscription_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "cancelled",
+        "refunded",
+      ],
     },
   },
 } as const
