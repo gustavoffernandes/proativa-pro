@@ -4,14 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Check, X, Crown, Building2, FileText, Users, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { usePlans, useCurrentUserPlan, type Plan } from "@/hooks/usePlans";
+import { usePlans, useCurrentUserPlan, type Plan, type PlanFeatures } from "@/hooks/usePlans";
 
-const featureLabels: { key: keyof Plan; label: string }[] = [
-  { key: "feature_pdf_report", label: "Relatório PDF" },
-  { key: "feature_excel_export", label: "Exportação Excel" },
-  { key: "feature_risk_matrix", label: "Matriz de Risco P×S" },
-  { key: "feature_sector_filters", label: "Filtro por GHE/Setor" },
-  { key: "feature_priority_support", label: "Suporte prioritário" },
+const featureLabels: { key: keyof PlanFeatures; label: string }[] = [
+  { key: "relatorio_pdf", label: "Relatório PDF" },
+  { key: "exportacao_excel", label: "Exportação Excel" },
+  { key: "matriz_risco", label: "Matriz de Risco P×S" },
+  { key: "filtro_ghe", label: "Filtro por GHE/Setor" },
+  { key: "suporte_prioritario", label: "Suporte prioritário" },
 ];
 
 export default function Subscription() {
@@ -67,9 +67,9 @@ export default function Subscription() {
               <div className="rounded-lg border border-border bg-background p-4 text-center">
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <FileText className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Pesquisas Criadas</span>
+                  <span className="text-xs text-muted-foreground">Pesquisas/mês</span>
                 </div>
-                <p className="text-2xl font-bold text-foreground">{surveysCount}<span className="text-sm text-muted-foreground">/{currentPlan.max_surveys}</span></p>
+                <p className="text-2xl font-bold text-foreground">{surveysCount}<span className="text-sm text-muted-foreground">/{currentPlan.max_surveys_per_month}</span></p>
               </div>
               <div className="rounded-lg border border-border bg-background p-4 text-center">
                 <div className="flex items-center justify-center gap-2 mb-1">
@@ -84,16 +84,19 @@ export default function Subscription() {
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-foreground">Recursos do Seu Plano</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {featureLabels.map(f => (
-                  <div key={f.key} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
-                    <span className="text-sm text-foreground">{f.label}</span>
-                    {currentPlan[f.key] ? (
-                      <span className="flex items-center gap-1 text-xs text-success font-semibold"><Check className="h-3.5 w-3.5" /> Incluído</span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground font-semibold"><X className="h-3.5 w-3.5" /> Não incluído</span>
-                    )}
-                  </div>
-                ))}
+                {featureLabels.map(f => {
+                  const enabled = !!currentPlan.features?.[f.key];
+                  return (
+                    <div key={String(f.key)} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
+                      <span className="text-sm text-foreground">{f.label}</span>
+                      {enabled ? (
+                        <span className="flex items-center gap-1 text-xs text-success font-semibold"><Check className="h-3.5 w-3.5" /> Incluído</span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground font-semibold"><X className="h-3.5 w-3.5" /> Não incluído</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -114,34 +117,37 @@ export default function Subscription() {
         <div>
           <h3 className="text-lg font-bold text-foreground mb-4">Planos Disponíveis</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {plans.map(plan => {
+            {plans.map((plan: Plan) => {
               const isCurrent = currentPlan?.id === plan.id;
               return (
                 <div key={plan.id} className={cn("rounded-xl border-2 bg-card p-5 shadow-card transition-all",
-                  isCurrent ? "border-primary" : "border-border", plan.is_highlight && !isCurrent && "border-primary/30")}>
+                  isCurrent ? "border-primary" : "border-border")}>
                   <div className="text-center mb-4">
                     {isCurrent && <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full mb-2"><Crown className="h-3 w-3" /> PLANO ATUAL</span>}
                     <h4 className="text-lg font-bold text-foreground">{plan.name}</h4>
-                    <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>
+                    {plan.description && <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>}
                   </div>
 
                   <div className="space-y-2 mb-4 text-sm">
                     <div className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /><span>{plan.max_companies} empresa(s)</span></div>
-                    <div className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /><span>{plan.max_surveys} pesquisa(s)/mês</span></div>
+                    <div className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /><span>{plan.max_surveys_per_month} pesquisa(s)/mês</span></div>
                     <div className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /><span>{plan.max_respondents} respondentes</span></div>
                     <div className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /><span>{plan.max_users} usuário(s)</span></div>
                   </div>
 
                   <div className="space-y-1.5 mb-4">
-                    {featureLabels.map(f => (
-                      <div key={f.key} className="flex items-center gap-2 text-sm">
-                        {plan[f.key] ? (
-                          <><Check className="h-3.5 w-3.5 text-success" /><span className="text-foreground">{f.label}</span></>
-                        ) : (
-                          <><X className="h-3.5 w-3.5 text-muted-foreground/50" /><span className="text-muted-foreground line-through">{f.label}</span></>
-                        )}
-                      </div>
-                    ))}
+                    {featureLabels.map(f => {
+                      const enabled = !!plan.features?.[f.key];
+                      return (
+                        <div key={String(f.key)} className="flex items-center gap-2 text-sm">
+                          {enabled ? (
+                            <><Check className="h-3.5 w-3.5 text-success" /><span className="text-foreground">{f.label}</span></>
+                          ) : (
+                            <><X className="h-3.5 w-3.5 text-muted-foreground/50" /><span className="text-muted-foreground line-through">{f.label}</span></>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
 
                   <button disabled className={cn("w-full rounded-lg py-2 text-sm font-medium",
