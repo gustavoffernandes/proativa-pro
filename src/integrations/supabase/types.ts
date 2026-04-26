@@ -64,6 +64,7 @@ export type Database = {
           description: string | null
           factor_id: string
           id: string
+          owner_admin_id: string | null
           risk_level: string
           risk_score: number
           status: string
@@ -79,6 +80,7 @@ export type Database = {
           description?: string | null
           factor_id?: string
           id?: string
+          owner_admin_id?: string | null
           risk_level?: string
           risk_score?: number
           status?: string
@@ -94,6 +96,7 @@ export type Database = {
           description?: string | null
           factor_id?: string
           id?: string
+          owner_admin_id?: string | null
           risk_level?: string
           risk_score?: number
           status?: string
@@ -142,6 +145,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          owner_admin_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -151,6 +155,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          owner_admin_id?: string | null
           title?: string
           updated_at?: string
           user_id: string
@@ -160,6 +165,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          owner_admin_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -225,6 +231,7 @@ export type Database = {
           is_active: boolean
           is_anonymous: boolean | null
           last_sync_at: string | null
+          owner_admin_id: string | null
           require_consent: boolean | null
           require_password: boolean | null
           sector: string | null
@@ -257,6 +264,7 @@ export type Database = {
           is_active?: boolean
           is_anonymous?: boolean | null
           last_sync_at?: string | null
+          owner_admin_id?: string | null
           require_consent?: boolean | null
           require_password?: boolean | null
           sector?: string | null
@@ -289,6 +297,7 @@ export type Database = {
           is_active?: boolean
           is_anonymous?: boolean | null
           last_sync_at?: string | null
+          owner_admin_id?: string | null
           require_consent?: boolean | null
           require_password?: boolean | null
           sector?: string | null
@@ -655,6 +664,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      action_plan_owner_admin: { Args: { _plan_id: string }; Returns: string }
+      config_owner_admin: { Args: { _config_id: string }; Returns: string }
+      config_owner_admin_text: { Args: { _config_id: string }; Returns: string }
       get_account_owner: { Args: { _user_id: string }; Returns: string }
       get_effective_subscription: {
         Args: { _user_id: string }
