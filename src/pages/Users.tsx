@@ -35,7 +35,7 @@ export default function Users() {
   const { data: companiesList = [] } = useQuery({
     queryKey: ["companies-for-user-creation"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("google_forms_config").select("id, company_name, cnpj").eq("is_active", true).order("company_name");
+      const { data, error } = await supabase.from("google_forms_config").select("id, company_name, cnpj").order("company_name");
       if (error) throw error;
       const seen = new Map<string, { id: string; company_name: string }>();
       (data || []).forEach((c: any) => { const key = c.cnpj || c.id; if (!seen.has(key)) seen.set(key, { id: c.id, company_name: c.company_name }); });
