@@ -298,7 +298,7 @@ export default function PublicSurvey() {
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm" style={{ background: `hsl(${teal})` }}>P</div>
             <div>
-              <p className="text-sm font-bold tracking-tight text-white">PROATIVA</p>
+              <p className="text-sm font-bold tracking-tight text-white">SSTudo</p>
               <p className="text-[10px] font-medium text-white/40">Avaliação de Riscos Psicossociais</p>
             </div>
           </div>

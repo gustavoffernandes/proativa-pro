@@ -32,7 +32,7 @@ const Login = forwardRef<HTMLDivElement>(function Login(_props, ref) {
             <Shield className="h-7 w-7 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">PROATIVA</h1>
+            <h1 className="text-2xl font-bold text-foreground">SSTudo</h1>
             <p className="text-sm text-muted-foreground">Dashboard Analítico</p>
           </div>
         </div>
@@ -73,7 +73,7 @@ const Login = forwardRef<HTMLDivElement>(function Login(_props, ref) {
             <p className="text-xs text-muted-foreground">Não possui acesso? Entre em contato com o administrador.</p>
           </div>
         </div>
-        <p className="text-center text-xs text-muted-foreground">© 2026 PROATIVA. Todos os direitos reservados.</p>
+        <p className="text-center text-xs text-muted-foreground">© 2026 SSTudo. Todos os direitos reservados.</p>
       </div>
     </div>
   );

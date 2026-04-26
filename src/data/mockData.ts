@@ -1,4 +1,4 @@
-// PROATIVA Survey Structure & Data
+// SSTudo Survey Structure & Data
 
 export interface Question {
   id: string;

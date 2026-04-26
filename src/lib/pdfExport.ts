@@ -53,7 +53,7 @@ function addHeader(doc: jsPDF, companyName: string, subtitle: string) {
   doc.text("P", 19, 23);
 
   doc.setFontSize(16);
-  doc.text("PROATIVA", 38, 17);
+  doc.text("SSTudo", 38, 17);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.text(subtitle, 38, 25);
@@ -69,7 +69,7 @@ function addFooter(doc: jsPDF, pageNum: number) {
   doc.line(MARGIN, pageHeight - 16, PAGE_WIDTH - MARGIN, pageHeight - 16);
   doc.setFontSize(7);
   doc.setTextColor(...COLORS.muted);
-  doc.text(`PROATIVA - Relatório gerado em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`, MARGIN, pageHeight - 10);
+  doc.text(`SSTudo - Relatório gerado em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`, MARGIN, pageHeight - 10);
   doc.text(`Página ${pageNum}`, doc.internal.pageSize.width - 30, pageHeight - 10);
 }
 
@@ -602,7 +602,7 @@ export function exportCompanyPDF(companyId: string, data: PDFExportData, formNam
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     const noPlansText = removeDiacritics(
-      "Nenhum plano de acao foi cadastrado para esta empresa ate o momento. Para criar planos de acao baseados nos fatores de risco identificados, acesse a pagina 'Planos de Acao' na plataforma PROATIVA."
+      "Nenhum plano de acao foi cadastrado para esta empresa ate o momento. Para criar planos de acao baseados nos fatores de risco identificados, acesse a pagina 'Planos de Acao' na plataforma SSTudo."
     );
     const noPlansLines = wrapText(noPlansText, CONTENT_WIDTH);
     noPlansLines.forEach((line: string) => {
@@ -702,7 +702,7 @@ export function exportCompanyPDF(companyId: string, data: PDFExportData, formNam
   doc.setFontSize(14);
   doc.setTextColor(...COLORS.primary);
   doc.setFont("helvetica", "bold");
-  doc.text("PROATIVA", MARGIN, fy); fy += 8;
+  doc.text("SSTudo", MARGIN, fy); fy += 8;
   doc.setFontSize(9);
   doc.setTextColor(...COLORS.text);
   doc.setFont("helvetica", "normal");
@@ -788,5 +788,5 @@ export function exportComparisonPDF(companyIds: string[], data: PDFExportData, s
     });
   });
 
-  doc.save(`comparativo_PROATIVA_${new Date().toISOString().split("T")[0]}.pdf`);
+  doc.save(`comparativo_SSTudo_${new Date().toISOString().split("T")[0]}.pdf`);
 }

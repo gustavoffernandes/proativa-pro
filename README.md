@@ -1,4 +1,4 @@
-# PROATIVA — Dashboard de Análise de Pesquisas
+# SSTudo — Dashboard de Análise de Pesquisas
 
 Sistema de dashboard para leitura, armazenamento e análise de respostas vindas do Google Forms (via Google Sheets).  
 Desenvolvido com **React**, **Vite**, **TypeScript** e **Lovable Cloud** (PostgreSQL, Auth, Edge Functions).
@@ -63,7 +63,7 @@ Acesse no navegador: **http://localhost:8080/**
 
 ## 📊 Guia de Integração com Google Forms (Passo a Passo)
 
-Esta seção explica como configurar a integração entre o Google Forms e o PROATIVA para importar automaticamente as respostas das pesquisas.
+Esta seção explica como configurar a integração entre o Google Forms e o SSTudo para importar automaticamente as respostas das pesquisas.
 
 ### Passo 1: Criar o formulário no Google Forms
 
@@ -112,7 +112,7 @@ Exemplo: se a URL é `https://docs.google.com/spreadsheets/d/1h2CrVt0qGKP6re7l9l
 3. Geralmente é **"Respostas ao formulário 1"** ou **"Form Responses 1"**
 4. Copie o nome exato (incluindo acentos e espaços)
 
-### Passo 6: Cadastrar no PROATIVA
+### Passo 6: Cadastrar no SSTudo
 
 1. Faça login no sistema como **administrador**
 2. No menu lateral, acesse **Integrações**
@@ -187,4 +187,4 @@ supabase/
 
 ## 📄 Licença
 
-© 2026 PROATIVA. Todos os direitos reservados.
+© 2026 SSTudo. Todos os direitos reservados.
