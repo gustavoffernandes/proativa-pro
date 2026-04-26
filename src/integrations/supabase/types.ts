@@ -622,18 +622,21 @@ export type Database = {
         Row: {
           company_id: string | null
           id: string
+          parent_admin_id: string | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           company_id?: string | null
           id?: string
+          parent_admin_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           company_id?: string | null
           id?: string
+          parent_admin_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
@@ -652,6 +655,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_account_owner: { Args: { _user_id: string }; Returns: string }
       get_effective_subscription: {
         Args: { _user_id: string }
         Returns: {
