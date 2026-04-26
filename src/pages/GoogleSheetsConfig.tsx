@@ -174,7 +174,7 @@ export default function GoogleSheetsConfig() {
           <h2 className="text-lg font-semibold text-card-foreground">Como configurar a integração</h2>
           <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
             <li>Cadastre a empresa na aba <strong>Empresas</strong> (nome fantasia + CNPJ)</li>
-            <li>Crie um Google Form com as perguntas do PROATIVA</li>
+            <li>Crie um Google Form com as perguntas do SSTudo</li>
             <li>Vincule as respostas a uma planilha Google Sheets</li>
             <li>Compartilhe a planilha com acesso de <strong>leitura</strong> para a conta de serviço</li>
             <li>Copie o <strong>ID da planilha</strong> (parte da URL entre /d/ e /edit)</li>

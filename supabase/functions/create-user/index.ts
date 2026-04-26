@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    
+
     const { data: { user: callerUser }, error: callerError } = await callerClient.auth.getUser();
     if (callerError || !callerUser) {
       return new Response(
@@ -36,49 +36,86 @@ Deno.serve(async (req) => {
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const { data: roleData } = await adminClient
+
+    // Garante que o caller é admin
+    const { data: callerRole } = await adminClient
       .from("user_roles")
-      .select("role")
+      .select("role, parent_admin_id")
       .eq("user_id", callerUser.id)
       .eq("role", "admin")
       .maybeSingle();
 
-    if (!roleData) {
+    if (!callerRole) {
       return new Response(
         JSON.stringify({ error: "Acesso negado. Apenas administradores podem gerenciar usuários." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // O "dono" da família é o próprio caller (admins raiz têm parent_admin_id NULL).
+    // Se algum dia um admin filho existir, herdamos do parent.
+    const familyOwnerId: string = callerRole.parent_admin_id ?? callerUser.id;
+
     const body = await req.json();
 
     // ==========================================
-    // ROTA PARA LISTAR USUÁRIOS
+    // LISTAR USUÁRIOS DA FAMÍLIA
     // ==========================================
     if (body.action === "list") {
-      const { data: { users }, error: listError } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
-      if (listError) {
-        return new Response(JSON.stringify({ error: listError.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      // Roles da família: o próprio dono + filhos
+      const { data: rolesData, error: rolesErr } = await adminClient
+        .from("user_roles")
+        .select("*")
+        .or(`user_id.eq.${familyOwnerId},parent_admin_id.eq.${familyOwnerId}`)
+        .order("role");
+
+      if (rolesErr) {
+        return new Response(JSON.stringify({ error: rolesErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      const { data: rolesData } = await adminClient.from("user_roles").select("*").order("role");
+
+      const userIds = Array.from(new Set((rolesData || []).map((r: any) => r.user_id)));
+      const emailMap: Record<string, string> = {};
+
+      // Busca emails apenas dos usuários da família
+      for (const uid of userIds) {
+        const { data: u } = await adminClient.auth.admin.getUserById(uid);
+        if (u?.user) emailMap[uid] = u.user.email || "";
+      }
+
+      const users = userIds.map((id) => ({ id, email: emailMap[id] || "" }));
       return new Response(
-        JSON.stringify({ users: users.map((u: any) => ({ id: u.id, email: u.email })), roles: rolesData || [] }),
+        JSON.stringify({ users, roles: rolesData || [] }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // ==========================================
-    // ROTA PARA ATUALIZAR (EDITAR) USUÁRIO
+    // ATUALIZAR USUÁRIO (somente da própria família)
     // ==========================================
     if (body.action === "update") {
       const { role_id, role, company_id } = body;
-      
+
+      // Verifica que role_id pertence à família
+      const { data: targetRole } = await adminClient
+        .from("user_roles")
+        .select("user_id, parent_admin_id")
+        .eq("id", role_id)
+        .maybeSingle();
+
+      if (!targetRole) {
+        return new Response(JSON.stringify({ error: "Usuário não encontrado." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const isInFamily = targetRole.user_id === familyOwnerId || targetRole.parent_admin_id === familyOwnerId;
+      if (!isInFamily) {
+        return new Response(JSON.stringify({ error: "Acesso negado." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       const updateData: any = { role };
       if (role === "company_user") updateData.company_id = company_id || null;
       else updateData.company_id = null;
 
       const { error } = await adminClient.from("user_roles").update(updateData).eq("id", role_id);
-      
+
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -86,18 +123,30 @@ Deno.serve(async (req) => {
     }
 
     // ==========================================
-    // ROTA PARA EXCLUIR USUÁRIO DEFINITIVAMENTE
+    // EXCLUIR USUÁRIO (somente da própria família, nunca o próprio dono)
     // ==========================================
     if (body.action === "delete") {
       const { user_id, role_id } = body;
-      
-      // Apaga o usuário do sistema de autenticação (auth.users)
+
+      if (user_id === familyOwnerId) {
+        return new Response(JSON.stringify({ error: "Não é possível excluir o administrador raiz da conta." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const { data: targetRole } = await adminClient
+        .from("user_roles")
+        .select("user_id, parent_admin_id")
+        .eq("id", role_id)
+        .maybeSingle();
+
+      if (!targetRole || targetRole.parent_admin_id !== familyOwnerId) {
+        return new Response(JSON.stringify({ error: "Acesso negado." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       const { error: authError } = await adminClient.auth.admin.deleteUser(user_id);
       if (authError) {
         return new Response(JSON.stringify({ error: authError.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      
-      // Tenta apagar a role por precaução, caso o banco não tenha feito a cascata automática
+
       if (role_id) {
         await adminClient.from("user_roles").delete().eq("id", role_id);
       }
@@ -105,7 +154,7 @@ Deno.serve(async (req) => {
     }
 
     // ==========================================
-    // ROTA PADRÃO (CRIAR NOVO USUÁRIO)
+    // CRIAR NOVO USUÁRIO (filho do admin caller)
     // ==========================================
     const { email, password, role = "user", company_id = null } = body;
 
@@ -119,7 +168,11 @@ Deno.serve(async (req) => {
     const { data, error } = await adminClient.auth.admin.createUser({ email, password, email_confirm: true });
     if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const roleInsert: Record<string, unknown> = { user_id: data.user.id, role };
+    const roleInsert: Record<string, unknown> = {
+      user_id: data.user.id,
+      role,
+      parent_admin_id: familyOwnerId, // marca como filho do admin caller
+    };
     if (role === "company_user" && company_id) roleInsert.company_id = company_id;
 
     const { error: roleError } = await adminClient.from("user_roles").insert(roleInsert);
@@ -128,11 +181,13 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Erro ao atribuir role ao usuário." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Audit log (Ignora falhas)
     try {
       await adminClient.from("audit_logs").insert({
-        actor_user_id: callerUser.id, action: "create_user", target_type: "auth.user", target_id: data.user.id,
-        details: { email, role, company_id: role === "company_user" ? company_id : null },
+        user_id: callerUser.id,
+        action: "create_user",
+        entity: "auth.user",
+        entity_id: data.user.id,
+        metadata: { email, role, company_id: role === "company_user" ? company_id : null, parent_admin_id: familyOwnerId },
       });
     } catch (_) {}
 

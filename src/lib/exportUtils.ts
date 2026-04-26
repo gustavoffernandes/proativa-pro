@@ -32,7 +32,7 @@ export function exportCompanyReport(companyId: string, data: ExportData) {
   const availableQuestions = data.getAvailableQuestions();
   const lines: string[] = [];
 
-  lines.push(`RELATÓRIO PROATIVA - ${company.name}`);
+  lines.push(`RELATÓRIO SSTudo - ${company.name}`);
   lines.push(`Setor: ${company.sector}`);
   lines.push(`Funcionários: ${company.employees}`);
   lines.push(`Respostas coletadas: ${pool.length}`);
@@ -92,7 +92,7 @@ export function exportComparisonReport(companyIds: string[], data: ExportData) {
   const availableQuestions = data.getAvailableQuestions();
   const lines: string[] = [];
 
-  lines.push("RELATÓRIO COMPARATIVO PROATIVA");
+  lines.push("RELATÓRIO COMPARATIVO SSTudo");
   lines.push(`Empresas: ${selected.map(c => c.name).join(" | ")}`);
   lines.push(`Data: ${new Date().toLocaleDateString("pt-BR")}`);
   lines.push("");
@@ -121,7 +121,7 @@ export function exportComparisonReport(companyIds: string[], data: ExportData) {
     lines.push("");
   });
 
-  downloadCSV(`comparativo_PROATIVA_${new Date().toISOString().split("T")[0]}.csv`, lines.join("\n"));
+  downloadCSV(`comparativo_SSTudo_${new Date().toISOString().split("T")[0]}.csv`, lines.join("\n"));
 }
 
 export function exportRawData(data: ExportData) {
@@ -136,7 +136,7 @@ export function exportRawData(data: ExportData) {
     lines.push(`"${r.name}","${company?.name || ""}",${r.sex},${r.age},${r.sector},${answers.join(",")}`);
   });
 
-  downloadCSV(`dados_brutos_PROATIVA_${new Date().toISOString().split("T")[0]}.csv`, lines.join("\n"));
+  downloadCSV(`dados_brutos_SSTudo_${new Date().toISOString().split("T")[0]}.csv`, lines.join("\n"));
 }
 
 export function exportHeatmapData(sectionId: string, data: ExportData) {

@@ -16,7 +16,7 @@ interface OnboardingStep {
 
 const welcomeStep = {
   id: "sidebar-logo",
-  title: "Bem-vindo ao PROATIVA",
+  title: "Bem-vindo ao SSTudo",
   description: "Vamos fazer um tour rápido pelas funcionalidades disponíveis para você no sistema.",
   position: "right",
 };

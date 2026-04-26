@@ -70,7 +70,7 @@ export default function Help() {
       <div className="animate-fade-in space-y-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-foreground">Central de Ajuda</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Aprenda a usar todas as funcionalidades do PROATIVA com nossos guias passo a passo</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">Aprenda a usar todas as funcionalidades do SSTudo com nossos guias passo a passo</p>
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
@@ -91,9 +91,9 @@ export default function Help() {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-card-foreground">Primeiros Passos</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Configure o PROATIVA em 5 passos simples</p>
+                  <p className="text-sm text-muted-foreground mt-1">Configure o SSTudo em 5 passos simples</p>
                 </div>
-                <p className="text-sm text-muted-foreground">O PROATIVA é uma plataforma completa para diagnóstico e gestão de riscos psicossociais no trabalho, baseada no protocolo PROART. Siga os passos abaixo para começar:</p>
+                <p className="text-sm text-muted-foreground">O SSTudo é uma plataforma completa para diagnóstico e gestão de riscos psicossociais no trabalho, baseada no protocolo PROART. Siga os passos abaixo para começar:</p>
                 <StepList
                   steps={[
                     { num: 1, title: "Cadastre uma empresa", desc: "No menu Empresas, clique em 'Nova Empresa' e preencha os dados cadastrais: razão social, CNPJ, contato e endereço. Adicione os setores da empresa para segmentar as respostas." },
@@ -113,7 +113,7 @@ export default function Help() {
                   <h3 className="text-lg font-semibold text-card-foreground">Gestão de Empresas</h3>
                   <p className="text-sm text-muted-foreground mt-1">Cadastre e gerencie as empresas avaliadas</p>
                 </div>
-                <p className="text-sm text-muted-foreground">Na aba Empresas, você gerencia todas as empresas que serão avaliadas pelo sistema PROATIVA. Cada empresa pode ter múltiplos formulários e setores cadastrados.</p>
+                <p className="text-sm text-muted-foreground">Na aba Empresas, você gerencia todas as empresas que serão avaliadas pelo sistema SSTudo. Cada empresa pode ter múltiplos formulários e setores cadastrados.</p>
                 <StepList
                   steps={[
                     { num: 1, title: "Cadastrar nova empresa", desc: "Clique em 'Nova Empresa' e preencha: Nome Fantasia, CNPJ, Setor de Atuação, Nº de Funcionários, dados de Contato (responsável, e-mail, telefone) e Endereço completo." },
@@ -132,7 +132,7 @@ export default function Help() {
                   <h3 className="text-lg font-semibold text-card-foreground">Pesquisas e Formulários</h3>
                   <p className="text-sm text-muted-foreground mt-1">Crie e distribua pesquisas baseadas no PROART</p>
                 </div>
-                <p className="text-sm text-muted-foreground">O PROATIVA utiliza o protocolo PROART com 91 questões distribuídas em 4 escalas. O formulário é preenchido online pelos colaboradores, sem necessidade de login.</p>
+                <p className="text-sm text-muted-foreground">O SSTudo utiliza o protocolo PROART com 91 questões distribuídas em 4 escalas. O formulário é preenchido online pelos colaboradores, sem necessidade de login.</p>
                 <StepList
                   steps={[
                     { num: 1, title: "Criar formulário", desc: "Acesse Formulários → Novo Formulário. Selecione a empresa, defina título, descrição e instruções personalizadas para os respondentes." },
@@ -152,7 +152,7 @@ export default function Help() {
                   <h3 className="text-lg font-semibold text-card-foreground">Relatórios e Análises</h3>
                   <p className="text-sm text-muted-foreground mt-1">Gere relatórios completos com classificação de risco</p>
                 </div>
-                <p className="text-sm text-muted-foreground">O PROATIVA oferece diversas visualizações e análises para interpretar os resultados das pesquisas de forma clara e objetiva.</p>
+                <p className="text-sm text-muted-foreground">O SSTudo oferece diversas visualizações e análises para interpretar os resultados das pesquisas de forma clara e objetiva.</p>
                 <StepList
                   steps={[
                     { num: 1, title: "Visão Geral", desc: "Painel principal com KPIs, total de empresas, formulários, respondentes e indicadores de risco consolidados." },
@@ -170,7 +170,7 @@ export default function Help() {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-card-foreground">Configurações do Sistema</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Personalize o PROATIVA conforme suas necessidades</p>
+                  <p className="text-sm text-muted-foreground mt-1">Personalize o SSTudo conforme suas necessidades</p>
                 </div>
                 <p className="text-sm text-muted-foreground">Gerencie seu perfil, aparência do sistema e configurações gerais.</p>
                 <StepList
@@ -246,7 +246,7 @@ export default function Help() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-semibold text-card-foreground">Perguntas Frequentes</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Tire suas dúvidas sobre o PROATIVA</p>
+                  <p className="text-sm text-muted-foreground mt-1">Tire suas dúvidas sobre o SSTudo</p>
                 </div>
                 <div className="space-y-2">
                   {faqItems.map((item, i) => (

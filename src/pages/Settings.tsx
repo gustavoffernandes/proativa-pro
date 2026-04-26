@@ -272,7 +272,7 @@ export default function Settings() {
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-foreground">Empresa</label>
                     <input value={profileCompany} onChange={e => setProfileCompany(e.target.value)}
-                      placeholder="Ex: PROATIVA Consultoria"
+                      placeholder="Ex: SSTudo Consultoria"
                       className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" />
                   </div>
                   <button onClick={handleSaveProfile} disabled={savingProfile}
@@ -360,7 +360,7 @@ export default function Settings() {
               <div className="space-y-4 max-w-md">
                 <h3 className="text-lg font-semibold text-card-foreground">Geral</h3>
                 <p className="text-sm text-muted-foreground">Configurações gerais da plataforma.</p>
-                <div className="rounded-lg bg-muted/50 p-4"><p className="text-xs text-muted-foreground">Versão: 2.0.0</p><p className="text-xs text-muted-foreground">© 2026 PROATIVA</p></div>
+                <div className="rounded-lg bg-muted/50 p-4"><p className="text-xs text-muted-foreground">Versão: 2.0.0</p><p className="text-xs text-muted-foreground">© 2026 SSTudo</p></div>
               </div>
             )}
           </div>
