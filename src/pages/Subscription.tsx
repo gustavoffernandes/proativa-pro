@@ -28,6 +28,15 @@ export default function Subscription() {
     },
   });
 
+  const { data: usersCount = 0 } = useQuery({
+    queryKey: ["family-users-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase.from("user_roles").select("*", { count: "exact", head: true });
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
   const companiesCount = companies.length;
   const surveysCount = formConfigs?.length || 0;
 
@@ -56,7 +65,7 @@ export default function Subscription() {
             </div>
 
             {/* Usage metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <div className="rounded-lg border border-border bg-background p-4 text-center">
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -77,6 +86,13 @@ export default function Subscription() {
                   <span className="text-xs text-muted-foreground">Respondentes</span>
                 </div>
                 <p className="text-2xl font-bold text-foreground">{responseCount}<span className="text-sm text-muted-foreground">/{currentPlan.max_respondents}</span></p>
+              </div>
+              <div className="rounded-lg border border-border bg-background p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Usuários Cadastrados</span>
+                </div>
+                <p className="text-2xl font-bold text-foreground">{usersCount}<span className="text-sm text-muted-foreground">/{currentPlan.max_users}</span></p>
               </div>
             </div>
 
