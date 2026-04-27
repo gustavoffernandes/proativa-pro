@@ -87,6 +87,13 @@ export default function Subscription() {
                 </div>
                 <p className="text-2xl font-bold text-foreground">{responseCount}<span className="text-sm text-muted-foreground">/{currentPlan.max_respondents}</span></p>
               </div>
+              <div className="rounded-lg border border-border bg-background p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Usuários Cadastrados</span>
+                </div>
+                <p className="text-2xl font-bold text-foreground">{usersCount}<span className="text-sm text-muted-foreground">/{currentPlan.max_users}</span></p>
+              </div>
             </div>
 
             {/* Plan features */}
