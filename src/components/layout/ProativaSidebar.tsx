@@ -78,7 +78,7 @@ export function ProativaSidebar({ collapsed, setCollapsed, mobileOpen, setMobile
             </div>
             {(!collapsed || mobileOpen) && (
               <div className="animate-fade-in">
-                <h1 className="text-sm font-bold text-sidebar-primary-foreground">PROATIVA</h1>
+                <h1 className="text-sm font-bold text-sidebar-primary-foreground">SSTudo</h1>
                 <p className="text-[10px] text-sidebar-foreground opacity-60">Dashboard Analítico</p>
               </div>
             )}
