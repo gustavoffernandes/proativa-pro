@@ -28,6 +28,15 @@ export default function Subscription() {
     },
   });
 
+  const { data: usersCount = 0 } = useQuery({
+    queryKey: ["family-users-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase.from("user_roles").select("*", { count: "exact", head: true });
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
   const companiesCount = companies.length;
   const surveysCount = formConfigs?.length || 0;
 
