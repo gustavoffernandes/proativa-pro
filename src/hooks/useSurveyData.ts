@@ -80,7 +80,7 @@ export function useSurveyData() {
     if (!cnpjToConfigIds.has(key)) {
       cnpjToConfigIds.set(key, []);
       cnpjToCompanyInfo.set(key, {
-        name: c.company_name,
+        name: c.company_name || "Empresa sem nome",
         sector: c.sector ? c.sector.charAt(0).toUpperCase() + c.sector.slice(1).toLowerCase() : "Não informado",
         employees: c.employee_count || null,
         cnpj: c.cnpj || "",
