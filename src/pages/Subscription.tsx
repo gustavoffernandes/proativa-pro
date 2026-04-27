@@ -65,7 +65,7 @@ export default function Subscription() {
             </div>
 
             {/* Usage metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <div className="rounded-lg border border-border bg-background p-4 text-center">
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
