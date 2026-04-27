@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import sstudoLogo from "@/assets/sstudo-logo-circle.png";
 
 const menuGroups = [
   {
@@ -73,8 +74,8 @@ export function ProativaSidebar({ collapsed, setCollapsed, mobileOpen, setMobile
       )}>
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4" data-onboarding="sidebar-logo">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary">
-              <BarChart3 className="h-5 w-5 text-sidebar-primary-foreground" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
+              <img src={sstudoLogo} alt="SSTudo" className="h-full w-full object-cover" />
             </div>
             {(!collapsed || mobileOpen) && (
               <div className="animate-fade-in">
