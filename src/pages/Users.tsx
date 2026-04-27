@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { UserPlus, Loader2, Pencil, Trash2, Check, X, AlertTriangle, Shield, User, Building2, Crown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { usePlans } from "@/hooks/usePlans";
+import { usePlans, useCurrentUserPlan } from "@/hooks/usePlans";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrador",
@@ -18,8 +18,10 @@ export default function Users() {
   const { user, isAdmin } = useAuth();
   const qc = useQueryClient();
   const { data: plans = [] } = usePlans();
-  // Limite de usuários: maior plano disponível (admin gerencia tudo). Vínculo de plano é feito via Supabase (system_accounts).
-  const userLimit = plans.reduce((max, p) => Math.max(max, p.max_users), 5);
+  const { data: currentPlan } = useCurrentUserPlan();
+  // Limite de usuários do plano contratado pelo admin (system_accounts). Fallback: menor plano.
+  const userLimit = currentPlan?.max_users
+    ?? (plans.length ? Math.min(...plans.map(p => p.max_users)) : 1);
 
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
