@@ -46,7 +46,6 @@ export function useSurveyData() {
       const { data, error } = await supabase
         .from("google_forms_config")
         .select("*")
-        .eq("is_active", true)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
