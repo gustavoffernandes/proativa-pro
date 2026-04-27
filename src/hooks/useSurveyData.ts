@@ -80,7 +80,7 @@ export function useSurveyData() {
     if (!cnpjToConfigIds.has(key)) {
       cnpjToConfigIds.set(key, []);
       cnpjToCompanyInfo.set(key, {
-        name: c.company_name,
+        name: c.company_name || "Empresa sem nome",
         sector: c.sector ? c.sector.charAt(0).toUpperCase() + c.sector.slice(1).toLowerCase() : "Não informado",
         employees: c.employee_count || null,
         cnpj: c.cnpj || "",
@@ -115,18 +115,21 @@ export function useSurveyData() {
 
   const filteredRawResponses = rawResponses.filter(r => filteredConfigIds.has(r.config_id));
 
-  const companies: RealCompany[] = filteredCompanyKeys.map((key, i) => {
-    const info = cnpjToCompanyInfo.get(key)!;
-    const companyConfigIds = cnpjToConfigIds.get(key) || [];
-    const responseCount = filteredRawResponses.filter(r => companyConfigIds.includes(r.config_id)).length;
-    return {
-      id: key,
-      name: info.name,
-      sector: info.sector,
-      employees: info.employees || responseCount,
-      color: COMPANY_COLORS[i % COMPANY_COLORS.length],
-    };
-  });
+  const companies: RealCompany[] = filteredCompanyKeys
+    .map((key, i) => {
+      const info = cnpjToCompanyInfo.get(key);
+      if (!info) return null;
+      const companyConfigIds = cnpjToConfigIds.get(key) || [];
+      const responseCount = filteredRawResponses.filter(r => companyConfigIds.includes(r.config_id)).length;
+      return {
+        id: key,
+        name: info.name || "Empresa sem nome",
+        sector: info.sector,
+        employees: info.employees || responseCount,
+        color: COMPANY_COLORS[i % COMPANY_COLORS.length],
+      };
+    })
+    .filter((c): c is RealCompany => c !== null);
 
   const respondents: Respondent[] = filteredRawResponses.map(r => {
     const formattedAnswers: Record<string, number> = {};
