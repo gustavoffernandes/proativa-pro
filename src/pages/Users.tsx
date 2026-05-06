@@ -49,9 +49,14 @@ export default function Users() {
   const { data: allCompanies = [] } = useQuery({
     queryKey: ["all-companies-for-lookup"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("google_forms_config").select("id, company_name").order("company_name");
+      const { data, error } = await supabase.from("google_forms_config").select("id, company_name, cnpj").order("company_name");
       if (error) throw error;
-      return (data || []) as { id: string; company_name: string }[];
+      const seen = new Map<string, { id: string; company_name: string }>();
+      (data || []).forEach((c: any) => {
+        const key = c.cnpj || c.company_name || c.id;
+        if (!seen.has(key)) seen.set(key, { id: c.id, company_name: c.company_name });
+      });
+      return Array.from(seen.values());
     },
     enabled: isAdmin,
   });
