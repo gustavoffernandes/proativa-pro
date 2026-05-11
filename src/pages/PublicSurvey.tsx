@@ -700,9 +700,9 @@ function QuestionCard({ question, value, onChange }: { question: { id: string; n
   const isAnswered = value !== undefined;
   return (
     <div className="rounded-2xl p-4 transition-all duration-200"
-      style={{ background: isAnswered ? `hsl(${teal} / 0.06)` : `hsl(${navyLight})`, border: `1px solid ${isAnswered ? `hsl(${teal} / 0.2)` : `hsl(${slate} / 0.08)`}` }}>
-      <p className="text-sm mb-3 text-white/90">
-        <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs font-bold text-white mr-2" style={{ background: isAnswered ? `hsl(${teal})` : `hsl(${slate} / 0.25)` }}>{question.number}</span>
+      style={{ background: isAnswered ? `hsl(${teal} / 0.08)` : `hsl(218 35% 32%)`, border: `1.5px solid ${isAnswered ? `hsl(${teal} / 0.45)` : `hsl(${slate} / 0.25)`}` }}>
+      <p className="text-sm mb-3 text-white font-medium">
+        <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs font-bold text-white mr-2" style={{ background: isAnswered ? `hsl(${teal})` : `hsl(${slate} / 0.45)` }}>{question.number}</span>
         {question.text}
       </p>
       <div className="flex flex-wrap gap-2">
@@ -710,16 +710,16 @@ function QuestionCard({ question, value, onChange }: { question: { id: string; n
           const isSelected = value === opt.value;
           return (
             <button key={opt.value} onClick={() => onChange(opt.value)}
-              className="flex-1 min-w-[56px] rounded-xl px-2 py-2.5 text-center transition-all duration-200 border"
+              className="flex-1 min-w-[56px] rounded-xl px-2 py-2.5 text-center transition-all duration-200 border-2"
               style={{
-                background: isSelected ? `hsl(${teal})` : `hsl(${navy})`,
-                color: isSelected ? 'white' : `hsl(${slate})`,
-                borderColor: isSelected ? `hsl(${teal})` : `hsl(${slate} / 0.12)`,
-                boxShadow: isSelected ? `0 4px 15px -4px hsl(${teal} / 0.4)` : 'none',
+                background: isSelected ? `hsl(${teal})` : `hsl(0 0% 100% / 0.08)`,
+                color: isSelected ? 'white' : 'white',
+                borderColor: isSelected ? `hsl(${teal})` : `hsl(0 0% 100% / 0.25)`,
+                boxShadow: isSelected ? `0 4px 15px -4px hsl(${teal} / 0.5)` : 'none',
                 transform: isSelected ? 'scale(1.05)' : 'scale(1)',
               }}>
               <span className="block text-sm font-extrabold">{opt.value}</span>
-              <span className="block text-[9px] leading-tight mt-0.5 opacity-75 font-medium">{opt.label}</span>
+              <span className="block text-[9px] leading-tight mt-0.5 opacity-90 font-semibold">{opt.label}</span>
             </button>
           );
         })}
