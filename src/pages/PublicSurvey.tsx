@@ -183,6 +183,7 @@ export default function PublicSurvey() {
         sex: demographics.sex || null,
         age: ageMap[demographics.age] || null,
         sector: demographics.sector || null,
+        cargo: demographics.cargo || null,
         escolaridade: demographics.escolaridade || null,
         estado_civil: demographics.estado_civil || null,
         tempo_empresa: demographics.tempo_empresa || null,
