@@ -19,6 +19,7 @@ interface CompanySector {
   name: string;
   code: string;
   description: string;
+  roles?: string[];
 }
 
 function formatCNPJ(value: string): string {
