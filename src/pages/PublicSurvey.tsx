@@ -66,7 +66,7 @@ export default function PublicSurvey() {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [openAnswers, setOpenAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [sectors, setSectors] = useState<string[]>([]);
+  const [sectors, setSectors] = useState<SectorWithRoles[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   const scales = useMemo(() => getQuestionsByScale(), []);
