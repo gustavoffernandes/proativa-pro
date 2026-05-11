@@ -59,9 +59,10 @@ export default function Companies() {
     address_street: "", address_city: "", address_state: "", address_zip: "",
   });
   const [editSectors, setEditSectors] = useState<CompanySector[]>([]);
-  const [newSector, setNewSector] = useState<CompanySector>({ name: "", code: "", description: "" });
+  const [newSector, setNewSector] = useState<CompanySector>({ name: "", code: "", description: "", roles: [] });
   const [editingSectorIdx, setEditingSectorIdx] = useState<number | null>(null);
-  const [editSectorData, setEditSectorData] = useState<CompanySector>({ name: "", code: "", description: "" });
+  const [editSectorData, setEditSectorData] = useState<CompanySector>({ name: "", code: "", description: "", roles: [] });
+  const [newRoleInputs, setNewRoleInputs] = useState<Record<number, string>>({});
 
   const { data: configs = [], isLoading } = useQuery({
     queryKey: ["google-forms-config"],
