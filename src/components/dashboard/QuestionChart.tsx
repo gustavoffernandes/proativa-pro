@@ -40,12 +40,15 @@ export function QuestionChart({ questionId, questionText, companyId, getAnswerDi
   const isMobile = useIsMobile();
   const distFn = getAnswerDistribution || mockGetAnswerDistribution;
   const dist = distFn(questionId, companyId);
-  const data = dist.map((d) => ({
+  const allData = dist.map((d) => ({
     name: scaleLabels[d.value],
     value: d.count,
     percentage: d.percentage,
     score: d.value,
   }));
+  // Bar/Line/Radar mantêm todos os pontos (mostra zeros). Pie remove zeros para não sobrepor labels.
+  const data = allData;
+  const pieData = allData.filter(d => d.value > 0);
   const tickSize = isMobile ? 8 : 10;
 
   return (
@@ -84,12 +87,16 @@ export function QuestionChart({ questionId, questionText, companyId, getAnswerDi
               </Bar>
             </BarChart>
           ) : chartType === "pie" ? (
+            pieData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">Sem respostas</div>
+            ) : (
             <PieChart>
-              <Pie data={data} cx="50%" cy="50%" innerRadius={isMobile ? 30 : 40} outerRadius={isMobile ? 55 : 70} dataKey="value" label={isMobile ? false : ({ name, percentage }) => `${name}: ${percentage}%`}>
-                {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              <Pie data={pieData} cx="50%" cy="50%" innerRadius={isMobile ? 30 : 40} outerRadius={isMobile ? 55 : 70} dataKey="value" label={isMobile ? false : ({ name, percentage }) => `${name}: ${percentage}%`}>
+                {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }} />
             </PieChart>
+            )
           ) : chartType === "line" ? (
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />

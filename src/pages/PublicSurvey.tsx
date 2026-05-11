@@ -31,7 +31,13 @@ interface Demographics {
   estado_civil: string;
   tempo_empresa: string;
   sector: string;
+  cargo: string;
   respondent_name: string;
+}
+
+interface SectorWithRoles {
+  name: string;
+  roles?: string[];
 }
 
 const STORAGE_KEY_PREFIX = "proativa_survey_";
@@ -55,12 +61,12 @@ export default function PublicSurvey() {
   const [passwordError, setPasswordError] = useState(false);
   const [demographics, setDemographics] = useState<Demographics>({
     sex: "", age: "", escolaridade: "", estado_civil: "",
-    tempo_empresa: "", sector: "", respondent_name: "",
+    tempo_empresa: "", sector: "", cargo: "", respondent_name: "",
   });
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [openAnswers, setOpenAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [sectors, setSectors] = useState<string[]>([]);
+  const [sectors, setSectors] = useState<SectorWithRoles[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   const scales = useMemo(() => getQuestionsByScale(), []);
@@ -83,13 +89,13 @@ export default function PublicSurvey() {
       if (cfg.start_date && new Date(cfg.start_date) > new Date()) { setError("Esta pesquisa ainda não começou"); setLoading(false); return; }
       setConfig(cfg);
 
-      let configSectors: string[] = [];
-      const extractSectors = (sectorsData: any) => {
-        const result: string[] = [];
+      let configSectors: SectorWithRoles[] = [];
+      const extractSectors = (sectorsData: any): SectorWithRoles[] => {
+        const result: SectorWithRoles[] = [];
         if (Array.isArray(sectorsData)) {
           sectorsData.forEach((s: any) => {
-            if (typeof s === "string") result.push(s);
-            else if (s && s.name) result.push(s.name);
+            if (typeof s === "string") result.push({ name: s, roles: [] });
+            else if (s && s.name) result.push({ name: s.name, roles: Array.isArray(s.roles) ? s.roles : [] });
           });
         }
         return result;
@@ -109,7 +115,9 @@ export default function PublicSurvey() {
           configSectors = extractSectors((placeholder as any).sectors);
         }
       }
-      setSectors([...new Set(configSectors)]);
+      // Dedupe by name
+      const seen = new Set<string>();
+      setSectors(configSectors.filter(s => { if (seen.has(s.name)) return false; seen.add(s.name); return true; }));
 
       const sessionToken = localStorage.getItem(STORAGE_KEY_PREFIX + id + "_token") || crypto.randomUUID();
       localStorage.setItem(STORAGE_KEY_PREFIX + id + "_token", sessionToken);
@@ -175,6 +183,7 @@ export default function PublicSurvey() {
         sex: demographics.sex || null,
         age: ageMap[demographics.age] || null,
         sector: demographics.sector || null,
+        cargo: demographics.cargo || null,
         escolaridade: demographics.escolaridade || null,
         estado_civil: demographics.estado_civil || null,
         tempo_empresa: demographics.tempo_empresa || null,
@@ -468,13 +477,26 @@ export default function PublicSurvey() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <StyledSelect label="Tempo na Empresa" required value={demographics.tempo_empresa} onChange={v => setDemographics({ ...demographics, tempo_empresa: v })} options={DEMOGRAPHIC_OPTIONS.tempo_empresa} />
                 {sectors.length > 0 ? (
-                  <StyledSelect label="Setor" required value={demographics.sector} onChange={v => setDemographics({ ...demographics, sector: v })} options={sectors} />
+                  <StyledSelect label="Setor" required value={demographics.sector} onChange={v => setDemographics({ ...demographics, sector: v, cargo: "" })} options={sectors.map(s => s.name)} />
                 ) : (
                   <div className="space-y-1.5">
                     <FieldLabel label="Setor" required />
                     <StyledInput value={demographics.sector} onChange={v => setDemographics({ ...demographics, sector: v })} placeholder="Digite seu setor" />
                   </div>
                 )}
+                {(() => {
+                  const selectedSector = sectors.find(s => s.name === demographics.sector);
+                  const availableRoles = selectedSector?.roles || [];
+                  if (availableRoles.length > 0) {
+                    return <StyledSelect label="Função (opcional)" value={demographics.cargo} onChange={v => setDemographics({ ...demographics, cargo: v })} options={availableRoles} />;
+                  }
+                  return (
+                    <div className="space-y-1.5">
+                      <FieldLabel label="Função (opcional)" />
+                      <StyledInput value={demographics.cargo} onChange={v => setDemographics({ ...demographics, cargo: v })} placeholder="Digite sua função" />
+                    </div>
+                  );
+                })()}
               </div>
             </FormCard>
           </div>
@@ -575,11 +597,18 @@ export default function PublicSurvey() {
                 })}
               </div>
             </div>
-            <button onClick={handleSubmit} disabled={submitting || answeredCount < totalQuestions}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl text-white py-4 text-sm font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ background: answeredCount >= totalQuestions ? `linear-gradient(135deg, hsl(${teal}), hsl(${tealLight}))` : `hsl(${slate} / 0.3)`, boxShadow: answeredCount >= totalQuestions ? `0 10px 40px -10px hsl(${teal} / 0.5)` : 'none' }}>
-              {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</> : <><CheckCircle2 className="h-4 w-4" /> Enviar Respostas</>}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button onClick={goPrev} disabled={submitting}
+                className="sm:w-auto w-full flex items-center justify-center gap-2 rounded-2xl py-4 px-6 text-sm font-bold transition-all disabled:opacity-30"
+                style={{ color: `hsl(${tealLight})`, background: `hsl(${slate} / 0.12)`, border: `1px solid hsl(${slate} / 0.2)` }}>
+                <ChevronLeft className="h-4 w-4" /> Voltar e revisar
+              </button>
+              <button onClick={handleSubmit} disabled={submitting || answeredCount < totalQuestions}
+                className="flex-1 flex items-center justify-center gap-2 rounded-2xl text-white py-4 text-sm font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                style={{ background: answeredCount >= totalQuestions ? `linear-gradient(135deg, hsl(${teal}), hsl(${tealLight}))` : `hsl(${slate} / 0.3)`, boxShadow: answeredCount >= totalQuestions ? `0 10px 40px -10px hsl(${teal} / 0.5)` : 'none' }}>
+                {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</> : <><CheckCircle2 className="h-4 w-4" /> Enviar Respostas</>}
+              </button>
+            </div>
           </div>
         )}
       </main>
@@ -671,9 +700,9 @@ function QuestionCard({ question, value, onChange }: { question: { id: string; n
   const isAnswered = value !== undefined;
   return (
     <div className="rounded-2xl p-4 transition-all duration-200"
-      style={{ background: isAnswered ? `hsl(${teal} / 0.06)` : `hsl(${navyLight})`, border: `1px solid ${isAnswered ? `hsl(${teal} / 0.2)` : `hsl(${slate} / 0.08)`}` }}>
-      <p className="text-sm mb-3 text-white/90">
-        <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs font-bold text-white mr-2" style={{ background: isAnswered ? `hsl(${teal})` : `hsl(${slate} / 0.25)` }}>{question.number}</span>
+      style={{ background: isAnswered ? `hsl(${teal} / 0.08)` : `hsl(218 35% 32%)`, border: `1.5px solid ${isAnswered ? `hsl(${teal} / 0.45)` : `hsl(${slate} / 0.25)`}` }}>
+      <p className="text-sm mb-3 text-white font-medium">
+        <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs font-bold text-white mr-2" style={{ background: isAnswered ? `hsl(${teal})` : `hsl(${slate} / 0.45)` }}>{question.number}</span>
         {question.text}
       </p>
       <div className="flex flex-wrap gap-2">
@@ -681,16 +710,16 @@ function QuestionCard({ question, value, onChange }: { question: { id: string; n
           const isSelected = value === opt.value;
           return (
             <button key={opt.value} onClick={() => onChange(opt.value)}
-              className="flex-1 min-w-[56px] rounded-xl px-2 py-2.5 text-center transition-all duration-200 border"
+              className="flex-1 min-w-[56px] rounded-xl px-2 py-2.5 text-center transition-all duration-200 border-2"
               style={{
-                background: isSelected ? `hsl(${teal})` : `hsl(${navy})`,
-                color: isSelected ? 'white' : `hsl(${slate})`,
-                borderColor: isSelected ? `hsl(${teal})` : `hsl(${slate} / 0.12)`,
-                boxShadow: isSelected ? `0 4px 15px -4px hsl(${teal} / 0.4)` : 'none',
+                background: isSelected ? `hsl(${teal})` : `hsl(0 0% 100% / 0.08)`,
+                color: isSelected ? 'white' : 'white',
+                borderColor: isSelected ? `hsl(${teal})` : `hsl(0 0% 100% / 0.25)`,
+                boxShadow: isSelected ? `0 4px 15px -4px hsl(${teal} / 0.5)` : 'none',
                 transform: isSelected ? 'scale(1.05)' : 'scale(1)',
               }}>
               <span className="block text-sm font-extrabold">{opt.value}</span>
-              <span className="block text-[9px] leading-tight mt-0.5 opacity-75 font-medium">{opt.label}</span>
+              <span className="block text-[9px] leading-tight mt-0.5 opacity-90 font-semibold">{opt.label}</span>
             </button>
           );
         })}

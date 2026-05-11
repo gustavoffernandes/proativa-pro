@@ -19,6 +19,7 @@ interface CompanySector {
   name: string;
   code: string;
   description: string;
+  roles?: string[];
 }
 
 function formatCNPJ(value: string): string {
@@ -58,9 +59,10 @@ export default function Companies() {
     address_street: "", address_city: "", address_state: "", address_zip: "",
   });
   const [editSectors, setEditSectors] = useState<CompanySector[]>([]);
-  const [newSector, setNewSector] = useState<CompanySector>({ name: "", code: "", description: "" });
+  const [newSector, setNewSector] = useState<CompanySector>({ name: "", code: "", description: "", roles: [] });
   const [editingSectorIdx, setEditingSectorIdx] = useState<number | null>(null);
-  const [editSectorData, setEditSectorData] = useState<CompanySector>({ name: "", code: "", description: "" });
+  const [editSectorData, setEditSectorData] = useState<CompanySector>({ name: "", code: "", description: "", roles: [] });
+  const [newRoleInputs, setNewRoleInputs] = useState<Record<number, string>>({});
 
   const { data: configs = [], isLoading } = useQuery({
     queryKey: ["google-forms-config"],
@@ -182,8 +184,8 @@ export default function Companies() {
 
   const addSectorToList = (list: CompanySector[], setList: (s: CompanySector[]) => void) => {
     if (!newSector.name) return;
-    setList([...list, { ...newSector }]);
-    setNewSector({ name: "", code: "", description: "" });
+    setList([...list, { ...newSector, roles: newSector.roles || [] }]);
+    setNewSector({ name: "", code: "", description: "", roles: [] });
   };
 
   const removeSectorFromList = (list: CompanySector[], setList: (s: CompanySector[]) => void, index: number) => {
@@ -221,32 +223,79 @@ export default function Companies() {
     setEditingSectorIdx(null);
   };
 
+  const addRoleToSector = (list: CompanySector[], setList: (s: CompanySector[]) => void, idx: number) => {
+    const roleName = (newRoleInputs[idx] || "").trim();
+    if (!roleName) return;
+    const updated = list.map((s, i) => {
+      if (i !== idx) return s;
+      const roles = s.roles || [];
+      if (roles.includes(roleName)) return s;
+      return { ...s, roles: [...roles, roleName] };
+    });
+    setList(updated);
+    setNewRoleInputs(prev => ({ ...prev, [idx]: "" }));
+  };
+
+  const removeRoleFromSector = (list: CompanySector[], setList: (s: CompanySector[]) => void, sectorIdx: number, roleIdx: number) => {
+    setList(list.map((s, i) => i === sectorIdx ? { ...s, roles: (s.roles || []).filter((_, ri) => ri !== roleIdx) } : s));
+  };
+
   const renderSectorEditor = (sectors: CompanySector[], setList: (s: CompanySector[]) => void) => (
     <div className="space-y-3">
-      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Setores da Empresa</h4>
-      <p className="text-xs text-muted-foreground">Adicione os setores que aparecerão no formulário de pesquisa.</p>
+      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Setores e Funções da Empresa</h4>
+      <p className="text-xs text-muted-foreground">Cadastre os setores. Em cada setor, você pode opcionalmente adicionar funções (cargos) que aparecerão como opções no formulário.</p>
       {sectors.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {sectors.map((s, i) => (
-            <div key={i} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
-              {editingSectorIdx === i ? (
-                <div className="flex items-center gap-2 flex-1">
-                  <input value={editSectorData.name} onChange={e => setEditSectorData({ ...editSectorData, name: e.target.value })}
-                    className="rounded border border-border bg-background px-2 py-1 text-xs flex-1" placeholder="Nome" />
-                  <input value={editSectorData.code} onChange={e => setEditSectorData({ ...editSectorData, code: e.target.value.toUpperCase() })}
-                    className="rounded border border-border bg-background px-2 py-1 text-xs w-16" placeholder="Código" />
-                  <button onClick={() => saveEditSector(sectors, setList)} className="p-1 rounded text-success hover:bg-success/10"><Check className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => setEditingSectorIdx(null)} className="p-1 rounded text-muted-foreground hover:bg-muted"><X className="h-3.5 w-3.5" /></button>
-                </div>
-              ) : (
-                <>
-                  <span className="text-sm font-medium text-foreground">{s.code ? `${s.code} - ` : ""}{s.name}</span>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => startEditSector(i, sectors)} className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"><Edit2 className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => removeSectorFromList(sectors, setList, i)} className="p-1 rounded text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
+            <div key={i} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                {editingSectorIdx === i ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <input value={editSectorData.name} onChange={e => setEditSectorData({ ...editSectorData, name: e.target.value })}
+                      className="rounded border border-border bg-background px-2 py-1 text-xs flex-1" placeholder="Nome" />
+                    <input value={editSectorData.code} onChange={e => setEditSectorData({ ...editSectorData, code: e.target.value.toUpperCase() })}
+                      className="rounded border border-border bg-background px-2 py-1 text-xs w-16" placeholder="Código" />
+                    <button onClick={() => saveEditSector(sectors, setList)} className="p-1 rounded text-success hover:bg-success/10"><Check className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => setEditingSectorIdx(null)} className="p-1 rounded text-muted-foreground hover:bg-muted"><X className="h-3.5 w-3.5" /></button>
                   </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <span className="text-sm font-semibold text-foreground">{s.code ? `${s.code} - ` : ""}{s.name}</span>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => startEditSector(i, sectors)} className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"><Edit2 className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => removeSectorFromList(sectors, setList, i)} className="p-1 rounded text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </div>
+                  </>
+                )}
+              </div>
+              {/* Roles */}
+              <div className="pl-2 border-l-2 border-primary/20 space-y-2">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Funções</p>
+                {(s.roles && s.roles.length > 0) ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {s.roles.map((role, ri) => (
+                      <span key={ri} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                        {role}
+                        <button onClick={() => removeRoleFromSector(sectors, setList, i, ri)} className="hover:text-destructive transition-colors"><X className="h-3 w-3" /></button>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground italic">Nenhuma função cadastrada (opcional).</p>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    value={newRoleInputs[i] || ""}
+                    onChange={e => setNewRoleInputs(prev => ({ ...prev, [i]: e.target.value }))}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addRoleToSector(sectors, setList, i); } }}
+                    placeholder="Ex: Operador, Analista, Coordenador"
+                    className="flex-1 rounded border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
+                  <button onClick={() => addRoleToSector(sectors, setList, i)} disabled={!(newRoleInputs[i] || "").trim()}
+                    className="rounded bg-primary/90 px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary disabled:opacity-50 transition-colors">
+                    <Plus className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
             </div>
           ))}
         </div>

@@ -99,6 +99,9 @@ export default function Forms() {
       const companyPlaceholder = allConfigs.find(c => c.cnpj === data.company_cnpj && c.spreadsheet_id === "__placeholder__");
       const companySectors = companyPlaceholder && Array.isArray(companyPlaceholder.sectors) ? companyPlaceholder.sectors : [];
 
+      if (data.require_password && !data.survey_password.trim()) {
+        throw new Error("Defina uma senha para acesso ao formulário.");
+      }
       const payload: any = {
         company_name: companyName,
         cnpj: data.company_cnpj,
@@ -113,8 +116,8 @@ export default function Forms() {
         end_date: data.end_date || null,
         is_anonymous: data.is_anonymous,
         require_consent: data.require_consent,
-        require_password: data.require_password,
-        survey_password: data.require_password ? data.survey_password : "",
+        require_password: !!data.require_password,
+        survey_password: data.require_password ? data.survey_password.trim() : "",
         sectors: companySectors,
       };
 
