@@ -89,13 +89,13 @@ export default function PublicSurvey() {
       if (cfg.start_date && new Date(cfg.start_date) > new Date()) { setError("Esta pesquisa ainda não começou"); setLoading(false); return; }
       setConfig(cfg);
 
-      let configSectors: string[] = [];
-      const extractSectors = (sectorsData: any) => {
-        const result: string[] = [];
+      let configSectors: SectorWithRoles[] = [];
+      const extractSectors = (sectorsData: any): SectorWithRoles[] => {
+        const result: SectorWithRoles[] = [];
         if (Array.isArray(sectorsData)) {
           sectorsData.forEach((s: any) => {
-            if (typeof s === "string") result.push(s);
-            else if (s && s.name) result.push(s.name);
+            if (typeof s === "string") result.push({ name: s, roles: [] });
+            else if (s && s.name) result.push({ name: s.name, roles: Array.isArray(s.roles) ? s.roles : [] });
           });
         }
         return result;
@@ -115,7 +115,9 @@ export default function PublicSurvey() {
           configSectors = extractSectors((placeholder as any).sectors);
         }
       }
-      setSectors([...new Set(configSectors)]);
+      // Dedupe by name
+      const seen = new Set<string>();
+      setSectors(configSectors.filter(s => { if (seen.has(s.name)) return false; seen.add(s.name); return true; }));
 
       const sessionToken = localStorage.getItem(STORAGE_KEY_PREFIX + id + "_token") || crypto.randomUUID();
       localStorage.setItem(STORAGE_KEY_PREFIX + id + "_token", sessionToken);
