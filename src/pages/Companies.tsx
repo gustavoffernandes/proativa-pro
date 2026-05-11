@@ -184,8 +184,8 @@ export default function Companies() {
 
   const addSectorToList = (list: CompanySector[], setList: (s: CompanySector[]) => void) => {
     if (!newSector.name) return;
-    setList([...list, { ...newSector }]);
-    setNewSector({ name: "", code: "", description: "" });
+    setList([...list, { ...newSector, roles: newSector.roles || [] }]);
+    setNewSector({ name: "", code: "", description: "", roles: [] });
   };
 
   const removeSectorFromList = (list: CompanySector[], setList: (s: CompanySector[]) => void, index: number) => {
