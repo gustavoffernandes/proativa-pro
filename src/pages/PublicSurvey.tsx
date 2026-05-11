@@ -61,7 +61,7 @@ export default function PublicSurvey() {
   const [passwordError, setPasswordError] = useState(false);
   const [demographics, setDemographics] = useState<Demographics>({
     sex: "", age: "", escolaridade: "", estado_civil: "",
-    tempo_empresa: "", sector: "", respondent_name: "",
+    tempo_empresa: "", sector: "", cargo: "", respondent_name: "",
   });
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [openAnswers, setOpenAnswers] = useState<Record<string, string>>({});
