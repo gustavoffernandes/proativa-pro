@@ -31,7 +31,13 @@ interface Demographics {
   estado_civil: string;
   tempo_empresa: string;
   sector: string;
+  cargo: string;
   respondent_name: string;
+}
+
+interface SectorWithRoles {
+  name: string;
+  roles?: string[];
 }
 
 const STORAGE_KEY_PREFIX = "proativa_survey_";
