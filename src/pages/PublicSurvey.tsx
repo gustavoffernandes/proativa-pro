@@ -476,13 +476,26 @@ export default function PublicSurvey() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <StyledSelect label="Tempo na Empresa" required value={demographics.tempo_empresa} onChange={v => setDemographics({ ...demographics, tempo_empresa: v })} options={DEMOGRAPHIC_OPTIONS.tempo_empresa} />
                 {sectors.length > 0 ? (
-                  <StyledSelect label="Setor" required value={demographics.sector} onChange={v => setDemographics({ ...demographics, sector: v })} options={sectors} />
+                  <StyledSelect label="Setor" required value={demographics.sector} onChange={v => setDemographics({ ...demographics, sector: v, cargo: "" })} options={sectors.map(s => s.name)} />
                 ) : (
                   <div className="space-y-1.5">
                     <FieldLabel label="Setor" required />
                     <StyledInput value={demographics.sector} onChange={v => setDemographics({ ...demographics, sector: v })} placeholder="Digite seu setor" />
                   </div>
                 )}
+                {(() => {
+                  const selectedSector = sectors.find(s => s.name === demographics.sector);
+                  const availableRoles = selectedSector?.roles || [];
+                  if (availableRoles.length > 0) {
+                    return <StyledSelect label="Função (opcional)" value={demographics.cargo} onChange={v => setDemographics({ ...demographics, cargo: v })} options={availableRoles} />;
+                  }
+                  return (
+                    <div className="space-y-1.5">
+                      <FieldLabel label="Função (opcional)" />
+                      <StyledInput value={demographics.cargo} onChange={v => setDemographics({ ...demographics, cargo: v })} placeholder="Digite sua função" />
+                    </div>
+                  );
+                })()}
               </div>
             </FormCard>
           </div>
