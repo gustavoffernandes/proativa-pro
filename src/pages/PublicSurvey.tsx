@@ -597,11 +597,18 @@ export default function PublicSurvey() {
                 })}
               </div>
             </div>
-            <button onClick={handleSubmit} disabled={submitting || answeredCount < totalQuestions}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl text-white py-4 text-sm font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ background: answeredCount >= totalQuestions ? `linear-gradient(135deg, hsl(${teal}), hsl(${tealLight}))` : `hsl(${slate} / 0.3)`, boxShadow: answeredCount >= totalQuestions ? `0 10px 40px -10px hsl(${teal} / 0.5)` : 'none' }}>
-              {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</> : <><CheckCircle2 className="h-4 w-4" /> Enviar Respostas</>}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button onClick={goPrev} disabled={submitting}
+                className="sm:w-auto w-full flex items-center justify-center gap-2 rounded-2xl py-4 px-6 text-sm font-bold transition-all disabled:opacity-30"
+                style={{ color: `hsl(${tealLight})`, background: `hsl(${slate} / 0.12)`, border: `1px solid hsl(${slate} / 0.2)` }}>
+                <ChevronLeft className="h-4 w-4" /> Voltar e revisar
+              </button>
+              <button onClick={handleSubmit} disabled={submitting || answeredCount < totalQuestions}
+                className="flex-1 flex items-center justify-center gap-2 rounded-2xl text-white py-4 text-sm font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                style={{ background: answeredCount >= totalQuestions ? `linear-gradient(135deg, hsl(${teal}), hsl(${tealLight}))` : `hsl(${slate} / 0.3)`, boxShadow: answeredCount >= totalQuestions ? `0 10px 40px -10px hsl(${teal} / 0.5)` : 'none' }}>
+                {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</> : <><CheckCircle2 className="h-4 w-4" /> Enviar Respostas</>}
+              </button>
+            </div>
           </div>
         )}
       </main>
