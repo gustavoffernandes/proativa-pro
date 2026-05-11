@@ -40,12 +40,15 @@ export function QuestionChart({ questionId, questionText, companyId, getAnswerDi
   const isMobile = useIsMobile();
   const distFn = getAnswerDistribution || mockGetAnswerDistribution;
   const dist = distFn(questionId, companyId);
-  const data = dist.map((d) => ({
+  const allData = dist.map((d) => ({
     name: scaleLabels[d.value],
     value: d.count,
     percentage: d.percentage,
     score: d.value,
   }));
+  // Bar/Line/Radar mantêm todos os pontos (mostra zeros). Pie remove zeros para não sobrepor labels.
+  const data = allData;
+  const pieData = allData.filter(d => d.value > 0);
   const tickSize = isMobile ? 8 : 10;
 
   return (

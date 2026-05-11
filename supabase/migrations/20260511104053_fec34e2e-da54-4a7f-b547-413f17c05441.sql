@@ -1,0 +1,2 @@
+CREATE POLICY "Anon can update own session" ON public.survey_sessions FOR UPDATE TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated can update own session" ON public.survey_sessions FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
