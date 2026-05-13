@@ -553,6 +553,9 @@ export default function Companies() {
                         {company.sector && <p className="text-xs text-muted-foreground">Setor: {company.sector}</p>}
                         {company.employee_count && <p className="text-xs text-muted-foreground">Funcionários: {company.employee_count}</p>}
                         <p className="text-xs text-muted-foreground">{company.form_count} formulário(s) vinculado(s)</p>
+                        <p className="text-xs text-muted-foreground">
+                          {company.sectors.length} setor(es) · {company.sectors.reduce((acc, s) => acc + (s.roles?.length || 0), 0)} função(ões) cadastrada(s)
+                        </p>
 
                         {company.sectors.length > 0 && (
                           <div className="mt-2">
