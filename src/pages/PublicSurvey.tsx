@@ -212,13 +212,19 @@ export default function PublicSurvey() {
   const goNext = () => {
     const steps: Step[] = buildSteps();
     const idx = steps.indexOf(step);
-    if (idx < steps.length - 1) setStep(steps[idx + 1]);
+    if (idx < steps.length - 1) {
+      setStep(steps[idx + 1]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const goPrev = () => {
     const steps: Step[] = buildSteps();
     const idx = steps.indexOf(step);
-    if (idx > 0) setStep(steps[idx - 1]);
+    if (idx > 0) {
+      setStep(steps[idx - 1]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const buildSteps = (): Step[] => {
