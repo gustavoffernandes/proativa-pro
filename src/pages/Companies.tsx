@@ -189,6 +189,8 @@ export default function Companies() {
   };
 
   const removeSectorFromList = (list: CompanySector[], setList: (s: CompanySector[]) => void, index: number) => {
+    const s = list[index];
+    if (!confirm(`Remover o setor "${s?.name}" e todas as suas funções?`)) return;
     setList(list.filter((_, i) => i !== index));
   };
 
