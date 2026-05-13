@@ -209,12 +209,24 @@ export default function PublicSurvey() {
     }
   };
 
+  useEffect(() => {
+    if (loading || step === "submitted") return;
+
+    const scrollToTop = () => window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    const frameId = window.requestAnimationFrame(scrollToTop);
+    const timeoutId = window.setTimeout(scrollToTop, 80);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [step, loading]);
+
   const goNext = () => {
     const steps: Step[] = buildSteps();
     const idx = steps.indexOf(step);
     if (idx < steps.length - 1) {
       setStep(steps[idx + 1]);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -223,7 +235,6 @@ export default function PublicSurvey() {
     const idx = steps.indexOf(step);
     if (idx > 0) {
       setStep(steps[idx - 1]);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
