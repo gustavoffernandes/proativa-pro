@@ -54,7 +54,7 @@ export default function Companies() {
   const [formSectors, setFormSectors] = useState<CompanySector[]>([]);
   const [editingCnpj, setEditingCnpj] = useState<string | null>(null);
   const [editData, setEditData] = useState({
-    name: "", sector: "", employee_count: "",
+    name: "", cnpj: "", sector: "", employee_count: "",
     contact_name: "", contact_email: "", contact_phone: "",
     address_street: "", address_city: "", address_state: "", address_zip: "",
   });
@@ -136,10 +136,17 @@ export default function Companies() {
   const updateCompany = useMutation({
     mutationFn: async ({ cnpj, data, sectors }: { cnpj: string; data: typeof editData; sectors: CompanySector[] }) => {
       const normalizedName = data.name.trim();
-      if (!normalizedName) throw new Error("Nome da empresa é obrigatório");
+      if (!normalizedName) throw new Error("Razão Social é obrigatória");
+      const newCnpjDigits = cleanCNPJ(data.cnpj);
+      if (newCnpjDigits.length !== 14) throw new Error("CNPJ deve ter 14 dígitos");
+      if (newCnpjDigits !== cnpj) {
+        const exists = configs.find((c: any) => c.cnpj === newCnpjDigits);
+        if (exists) throw new Error("Já existe uma empresa cadastrada com este CNPJ");
+      }
       const parsedEmployeeCount = data.employee_count ? Number(data.employee_count) : null;
       const updatePayload: any = {
         company_name: normalizedName,
+        cnpj: newCnpjDigits,
         sector: data.sector?.trim() || null,
         employee_count: parsedEmployeeCount,
         sectors: sectors as any,
@@ -189,6 +196,8 @@ export default function Companies() {
   };
 
   const removeSectorFromList = (list: CompanySector[], setList: (s: CompanySector[]) => void, index: number) => {
+    const s = list[index];
+    if (!confirm(`Remover o setor "${s?.name}" e todas as suas funções?`)) return;
     setList(list.filter((_, i) => i !== index));
   };
 
@@ -209,6 +218,7 @@ export default function Companies() {
     setEditingCnpj(company.cnpj);
     setEditData({
       name: company.company_name,
+      cnpj: formatCNPJ(company.cnpj),
       sector: company.sector || "",
       employee_count: company.employee_count ? String(company.employee_count) : "",
       contact_name: cfg?.contact_name || "",
@@ -237,6 +247,8 @@ export default function Companies() {
   };
 
   const removeRoleFromSector = (list: CompanySector[], setList: (s: CompanySector[]) => void, sectorIdx: number, roleIdx: number) => {
+    const roleName = list[sectorIdx]?.roles?.[roleIdx];
+    if (!confirm(`Remover a função "${roleName}"?`)) return;
     setList(list.map((s, i) => i === sectorIdx ? { ...s, roles: (s.roles || []).filter((_, ri) => ri !== roleIdx) } : s));
   };
 
@@ -351,9 +363,9 @@ export default function Companies() {
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Dados Básicos</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground">Nome Fantasia *</label>
+                  <label className="text-xs font-medium text-foreground">Razão Social *</label>
                   <input value={formData.company_name} onChange={e => setFormData({ ...formData, company_name: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" placeholder="Ex: TechSol Ltda" />
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" placeholder="Ex: TechSol Soluções Ltda" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-foreground">CNPJ *</label>
@@ -453,12 +465,17 @@ export default function Companies() {
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Dados Básicos</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="text-xs font-medium text-muted-foreground">Nome Fantasia</label>
+                          <label className="text-xs font-medium text-muted-foreground">Razão Social *</label>
                           <input value={editData.name} onChange={e => setEditData({ ...editData, name: e.target.value })}
                             className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" autoFocus />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs font-medium text-muted-foreground">Setor</label>
+                          <label className="text-xs font-medium text-muted-foreground">CNPJ *</label>
+                          <input value={editData.cnpj} onChange={e => setEditData({ ...editData, cnpj: formatCNPJ(e.target.value) })}
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" maxLength={18} placeholder="00.000.000/0000-00" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-muted-foreground">Setor de Atuação</label>
                           <input value={editData.sector} onChange={e => setEditData({ ...editData, sector: e.target.value })}
                             className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" />
                         </div>
@@ -536,6 +553,9 @@ export default function Companies() {
                         {company.sector && <p className="text-xs text-muted-foreground">Setor: {company.sector}</p>}
                         {company.employee_count && <p className="text-xs text-muted-foreground">Funcionários: {company.employee_count}</p>}
                         <p className="text-xs text-muted-foreground">{company.form_count} formulário(s) vinculado(s)</p>
+                        <p className="text-xs text-muted-foreground">
+                          {company.sectors.length} setor(es) · {company.sectors.reduce((acc, s) => acc + (s.roles?.length || 0), 0)} função(ões) cadastrada(s)
+                        </p>
 
                         {company.sectors.length > 0 && (
                           <div className="mt-2">

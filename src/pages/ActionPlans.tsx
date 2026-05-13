@@ -159,7 +159,7 @@ export default function ActionPlans() {
                     {s === "pending" ? "Pendente" : s === "in_progress" ? "Em andamento" : "Concluído"}
                   </button>
                 ))}
-                <button onClick={() => deletePlan(plan.id)} className="ml-auto text-xs text-destructive hover:text-destructive/80 flex items-center gap-1">
+                <button onClick={() => { if (confirm(`Excluir o plano "${plan.title}" e todas as suas ações? Esta ação não pode ser desfeita.`)) deletePlan(plan.id); }} className="ml-auto text-xs text-destructive hover:text-destructive/80 flex items-center gap-1">
                   <Trash2 className="h-3 w-3" /> Excluir
                 </button>
               </div>
@@ -211,7 +211,7 @@ export default function ActionPlans() {
                                 <button onClick={() => { setEditingObs(editingObs === task.id ? null : task.id); setObsText(task.observation || ""); }} className="text-[10px] text-primary hover:underline flex items-center gap-1">
                                   <MessageSquare className="h-3 w-3" /> {task.observation ? "Editar" : "Como"}
                                 </button>
-                                <button onClick={() => deleteTask(task.id)} className="text-[10px] text-destructive hover:underline">Excluir</button>
+                                <button onClick={() => { if (confirm(`Excluir a ação "${task.title}"?`)) deleteTask(task.id); }} className="text-[10px] text-destructive hover:underline">Excluir</button>
                               </div>
                             </td>
                           )}
@@ -256,7 +256,7 @@ export default function ActionPlans() {
                           <button onClick={() => { setEditingObs(editingObs === task.id ? null : task.id); setObsText(task.observation || ""); }} className="text-[10px] text-primary hover:underline flex items-center gap-1">
                             <MessageSquare className="h-3 w-3" /> {task.observation ? "Editar" : "Como"}
                           </button>
-                          <button onClick={() => deleteTask(task.id)} className="text-[10px] text-destructive hover:underline">Excluir</button>
+                          <button onClick={() => { if (confirm(`Excluir a ação "${task.title}"?`)) deleteTask(task.id); }} className="text-[10px] text-destructive hover:underline">Excluir</button>
                         </div>
                       )}
                     </div>
