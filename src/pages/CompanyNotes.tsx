@@ -147,7 +147,7 @@ export default function CompanyNotes() {
                       <h4 className="text-sm font-semibold text-card-foreground">{note.title || "Sem título"}</h4>
                       <div className="flex gap-1">
                         <button onClick={() => { setEditingId(note.id); setEditTitle(note.title); setEditContent(note.content); }} className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Edit3 className="h-3.5 w-3.5" /></button>
-                        <button onClick={() => deleteMutation.mutate(note.id)} className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => { if (confirm(`Excluir a anotação "${note.title || "Sem título"}"?`)) deleteMutation.mutate(note.id); }} className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
                       </div>
                     </div>
                     <p className="text-xs text-foreground whitespace-pre-wrap">{note.content}</p>
