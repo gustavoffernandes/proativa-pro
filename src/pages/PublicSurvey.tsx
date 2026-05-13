@@ -330,7 +330,7 @@ export default function PublicSurvey() {
 
       {/* Step indicator */}
       {step !== "welcome" && (
-        <div className="border-b" style={{ borderColor: `hsl(${slate} / 0.1)`, background: `hsl(${navy} / 0.6)` }}>
+        <div className="sticky top-0 z-40 border-b" style={{ borderColor: `hsl(${slate} / 0.1)`, background: `hsl(${navy} / 0.95)`, backdropFilter: 'blur(12px)' }}>
           <div className="max-w-3xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold" style={{ color: `hsl(${teal})` }}>{stepLabels[step] || step}</span>
