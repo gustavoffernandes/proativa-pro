@@ -136,10 +136,17 @@ export default function Companies() {
   const updateCompany = useMutation({
     mutationFn: async ({ cnpj, data, sectors }: { cnpj: string; data: typeof editData; sectors: CompanySector[] }) => {
       const normalizedName = data.name.trim();
-      if (!normalizedName) throw new Error("Nome da empresa é obrigatório");
+      if (!normalizedName) throw new Error("Razão Social é obrigatória");
+      const newCnpjDigits = cleanCNPJ(data.cnpj);
+      if (newCnpjDigits.length !== 14) throw new Error("CNPJ deve ter 14 dígitos");
+      if (newCnpjDigits !== cnpj) {
+        const exists = configs.find((c: any) => c.cnpj === newCnpjDigits);
+        if (exists) throw new Error("Já existe uma empresa cadastrada com este CNPJ");
+      }
       const parsedEmployeeCount = data.employee_count ? Number(data.employee_count) : null;
       const updatePayload: any = {
         company_name: normalizedName,
+        cnpj: newCnpjDigits,
         sector: data.sector?.trim() || null,
         employee_count: parsedEmployeeCount,
         sectors: sectors as any,
