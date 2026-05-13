@@ -211,6 +211,7 @@ export default function Companies() {
     setEditingCnpj(company.cnpj);
     setEditData({
       name: company.company_name,
+      cnpj: formatCNPJ(company.cnpj),
       sector: company.sector || "",
       employee_count: company.employee_count ? String(company.employee_count) : "",
       contact_name: cfg?.contact_name || "",
