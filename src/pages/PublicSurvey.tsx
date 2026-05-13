@@ -212,13 +212,19 @@ export default function PublicSurvey() {
   const goNext = () => {
     const steps: Step[] = buildSteps();
     const idx = steps.indexOf(step);
-    if (idx < steps.length - 1) setStep(steps[idx + 1]);
+    if (idx < steps.length - 1) {
+      setStep(steps[idx + 1]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const goPrev = () => {
     const steps: Step[] = buildSteps();
     const idx = steps.indexOf(step);
-    if (idx > 0) setStep(steps[idx - 1]);
+    if (idx > 0) {
+      setStep(steps[idx - 1]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const buildSteps = (): Step[] => {
@@ -324,7 +330,7 @@ export default function PublicSurvey() {
 
       {/* Step indicator */}
       {step !== "welcome" && (
-        <div className="border-b" style={{ borderColor: `hsl(${slate} / 0.1)`, background: `hsl(${navy} / 0.6)` }}>
+        <div className="sticky top-0 z-40 border-b" style={{ borderColor: `hsl(${slate} / 0.1)`, background: `hsl(${navy} / 0.95)`, backdropFilter: 'blur(12px)' }}>
           <div className="max-w-3xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold" style={{ color: `hsl(${teal})` }}>{stepLabels[step] || step}</span>
