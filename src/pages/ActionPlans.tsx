@@ -159,7 +159,7 @@ export default function ActionPlans() {
                     {s === "pending" ? "Pendente" : s === "in_progress" ? "Em andamento" : "Concluído"}
                   </button>
                 ))}
-                <button onClick={() => deletePlan(plan.id)} className="ml-auto text-xs text-destructive hover:text-destructive/80 flex items-center gap-1">
+                <button onClick={() => { if (confirm(`Excluir o plano "${plan.title}" e todas as suas ações? Esta ação não pode ser desfeita.`)) deletePlan(plan.id); }} className="ml-auto text-xs text-destructive hover:text-destructive/80 flex items-center gap-1">
                   <Trash2 className="h-3 w-3" /> Excluir
                 </button>
               </div>
