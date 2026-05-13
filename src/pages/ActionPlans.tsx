@@ -256,7 +256,7 @@ export default function ActionPlans() {
                           <button onClick={() => { setEditingObs(editingObs === task.id ? null : task.id); setObsText(task.observation || ""); }} className="text-[10px] text-primary hover:underline flex items-center gap-1">
                             <MessageSquare className="h-3 w-3" /> {task.observation ? "Editar" : "Como"}
                           </button>
-                          <button onClick={() => deleteTask(task.id)} className="text-[10px] text-destructive hover:underline">Excluir</button>
+                          <button onClick={() => { if (confirm(`Excluir a ação "${task.title}"?`)) deleteTask(task.id); }} className="text-[10px] text-destructive hover:underline">Excluir</button>
                         </div>
                       )}
                     </div>
