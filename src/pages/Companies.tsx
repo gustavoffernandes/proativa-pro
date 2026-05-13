@@ -239,6 +239,8 @@ export default function Companies() {
   };
 
   const removeRoleFromSector = (list: CompanySector[], setList: (s: CompanySector[]) => void, sectorIdx: number, roleIdx: number) => {
+    const roleName = list[sectorIdx]?.roles?.[roleIdx];
+    if (!confirm(`Remover a função "${roleName}"?`)) return;
     setList(list.map((s, i) => i === sectorIdx ? { ...s, roles: (s.roles || []).filter((_, ri) => ri !== roleIdx) } : s));
   };
 
