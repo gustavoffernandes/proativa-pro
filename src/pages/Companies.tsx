@@ -465,12 +465,17 @@ export default function Companies() {
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Dados Básicos</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="text-xs font-medium text-muted-foreground">Nome Fantasia</label>
+                          <label className="text-xs font-medium text-muted-foreground">Razão Social *</label>
                           <input value={editData.name} onChange={e => setEditData({ ...editData, name: e.target.value })}
                             className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" autoFocus />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-xs font-medium text-muted-foreground">Setor</label>
+                          <label className="text-xs font-medium text-muted-foreground">CNPJ *</label>
+                          <input value={editData.cnpj} onChange={e => setEditData({ ...editData, cnpj: formatCNPJ(e.target.value) })}
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" maxLength={18} placeholder="00.000.000/0000-00" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-muted-foreground">Setor de Atuação</label>
                           <input value={editData.sector} onChange={e => setEditData({ ...editData, sector: e.target.value })}
                             className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" />
                         </div>
