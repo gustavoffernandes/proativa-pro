@@ -485,10 +485,10 @@ export default function PublicSurvey() {
                   </div>
                 )}
                 {(() => {
-                  const selectedSector = sectors.find(s => s.name === demographics.sector);
-                  const availableRoles = selectedSector?.roles || [];
-                  if (availableRoles.length > 0) {
-                    return <StyledSelect label="Função (opcional)" value={demographics.cargo} onChange={v => setDemographics({ ...demographics, cargo: v })} options={availableRoles} />;
+                  const allRoles = sectors.flatMap(s => s.roles || []);
+                  const uniqueRoles = Array.from(new Set(allRoles));
+                  if (uniqueRoles.length > 0) {
+                    return <StyledSelect label="Função (opcional)" value={demographics.cargo} onChange={v => setDemographics({ ...demographics, cargo: v })} options={uniqueRoles} />;
                   }
                   return (
                     <div className="space-y-1.5">
