@@ -54,7 +54,7 @@ export default function Companies() {
   const [formSectors, setFormSectors] = useState<CompanySector[]>([]);
   const [editingCnpj, setEditingCnpj] = useState<string | null>(null);
   const [editData, setEditData] = useState({
-    name: "", sector: "", employee_count: "",
+    name: "", cnpj: "", sector: "", employee_count: "",
     contact_name: "", contact_email: "", contact_phone: "",
     address_street: "", address_city: "", address_state: "", address_zip: "",
   });
