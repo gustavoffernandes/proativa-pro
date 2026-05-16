@@ -63,9 +63,18 @@ export default function Forms() {
   });
 
   const configs = allConfigs.filter(c => c.spreadsheet_id !== "__placeholder__");
-  const companiesMap = new Map<string, string>();
-  allConfigs.forEach(c => { if (c.cnpj && !companiesMap.has(c.cnpj)) companiesMap.set(c.cnpj, c.company_name); });
-  const registeredCompanies = Array.from(companiesMap.entries()).map(([cnpj, name]) => ({ cnpj, name }));
+  const normalizeCity = (v: any) => (v || "").toString().trim().toLowerCase();
+  const placeholderConfigs = allConfigs.filter((c: any) => c.spreadsheet_id === "__placeholder__");
+  const registeredCompanies = placeholderConfigs.map((c: any) => {
+    const city = (c.address_city || "").toString().trim();
+    return {
+      id: c.id,
+      cnpj: c.cnpj || "",
+      name: c.company_name || "Empresa sem nome",
+      city,
+      label: city ? `${c.company_name} — ${city}` : c.company_name,
+    };
+  }).sort((a, b) => a.label.localeCompare(b.label));
 
   const { data: responseCounts = {} } = useQuery({
     queryKey: ["form-response-counts"],
@@ -93,18 +102,18 @@ export default function Forms() {
     mutationFn: async (data: typeof formData) => {
       if (!data.company_cnpj) throw new Error("Selecione uma empresa");
       if (!data.form_title) throw new Error("Título é obrigatório");
-      const companyName = registeredCompanies.find(c => c.cnpj === data.company_cnpj)?.name || "";
-
-      // Find sectors from the company's placeholder config
-      const companyPlaceholder = allConfigs.find(c => c.cnpj === data.company_cnpj && c.spreadsheet_id === "__placeholder__");
-      const companySectors = companyPlaceholder && Array.isArray(companyPlaceholder.sectors) ? companyPlaceholder.sectors : [];
+      const branch = registeredCompanies.find(c => c.id === data.company_cnpj);
+      if (!branch) throw new Error("Empresa/filial não encontrada");
+      const placeholder = placeholderConfigs.find((c: any) => c.id === branch.id) as any;
+      const companySectors = placeholder && Array.isArray(placeholder.sectors) ? placeholder.sectors : [];
 
       if (data.require_password && !data.survey_password.trim()) {
         throw new Error("Defina uma senha para acesso ao formulário.");
       }
       const payload: any = {
-        company_name: companyName,
-        cnpj: data.company_cnpj,
+        company_name: branch.name,
+        cnpj: branch.cnpj,
+        address_city: branch.city || null,
         form_title: data.form_title,
         spreadsheet_id: "__internal__",
         sheet_name: "internal",
