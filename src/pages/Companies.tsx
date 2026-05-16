@@ -120,8 +120,13 @@ export default function Companies() {
     mutationFn: async (data: { formData: typeof formData; sectors: CompanySector[] }) => {
       const cnpjDigits = cleanCNPJ(data.formData.cnpj);
       if (cnpjDigits.length !== 14) throw new Error("CNPJ deve ter 14 dígitos");
-      const existing = configs.find((c: any) => c.cnpj === cnpjDigits);
-      if (existing) throw new Error("Já existe uma empresa cadastrada com este CNPJ");
+      const cityNorm = normalizeCity(data.formData.address_city);
+      const existing = configs.find((c: any) => c.cnpj === cnpjDigits && normalizeCity(c.address_city) === cityNorm);
+      if (existing) {
+        throw new Error(cityNorm
+          ? `Já existe uma filial cadastrada com este CNPJ na cidade "${data.formData.address_city}"`
+          : "Já existe uma empresa cadastrada com este CNPJ. Para cadastrar uma filial, informe a cidade.");
+      }
       const { error } = await supabase.from("google_forms_config").insert([{
         company_name: data.formData.company_name, cnpj: cnpjDigits,
         spreadsheet_id: "__placeholder__", sheet_name: "Form Responses 1", is_active: false,
@@ -150,14 +155,15 @@ export default function Companies() {
   });
 
   const updateCompany = useMutation({
-    mutationFn: async ({ cnpj, data, sectors }: { cnpj: string; data: typeof editData; sectors: CompanySector[] }) => {
+    mutationFn: async ({ cnpj, city, data, sectors }: { cnpj: string; city: string; data: typeof editData; sectors: CompanySector[] }) => {
       const normalizedName = data.name.trim();
       if (!normalizedName) throw new Error("Razão Social é obrigatória");
       const newCnpjDigits = cleanCNPJ(data.cnpj);
       if (newCnpjDigits.length !== 14) throw new Error("CNPJ deve ter 14 dígitos");
-      if (newCnpjDigits !== cnpj) {
-        const exists = configs.find((c: any) => c.cnpj === newCnpjDigits);
-        if (exists) throw new Error("Já existe uma empresa cadastrada com este CNPJ");
+      const newCityNorm = normalizeCity(data.address_city);
+      if (newCnpjDigits !== cnpj || newCityNorm !== normalizeCity(city)) {
+        const exists = configs.find((c: any) => c.cnpj === newCnpjDigits && normalizeCity(c.address_city) === newCityNorm);
+        if (exists) throw new Error("Já existe uma empresa/filial cadastrada com este CNPJ e cidade");
       }
       const parsedEmployeeCount = data.employee_count ? Number(data.employee_count) : null;
       const updatePayload: any = {
@@ -174,27 +180,31 @@ export default function Companies() {
         address_state: data.address_state || null,
         address_zip: data.address_zip || null,
       };
-      const { error } = await (supabase.from("google_forms_config") as any).update(updatePayload).eq("cnpj", cnpj);
-      if (error) throw error;
+      const branchConfigIds = configs.filter((c: any) => c.cnpj === cnpj && normalizeCity(c.address_city) === normalizeCity(city)).map((c: any) => c.id);
+      for (const cid of branchConfigIds) {
+        const { error } = await (supabase.from("google_forms_config") as any).update(updatePayload).eq("id", cid);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["google-forms-config"] });
       queryClient.invalidateQueries({ queryKey: ["google-forms-config-all"] });
-      setEditingCnpj(null);
+      setEditingKey(null);
       toast({ title: "Empresa atualizada!" });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
   const deleteCompany = useMutation({
-    mutationFn: async (cnpj: string) => {
-      const configIds = configs.filter((c: any) => c.cnpj === cnpj).map((c: any) => c.id);
+    mutationFn: async ({ cnpj, city }: { cnpj: string; city: string }) => {
+      const cityNorm = normalizeCity(city);
+      const configIds = configs.filter((c: any) => c.cnpj === cnpj && normalizeCity(c.address_city) === cityNorm).map((c: any) => c.id);
       for (const configId of configIds) {
         await (supabase.from("user_roles") as any).delete().eq("company_id", configId);
         await supabase.from("survey_responses").delete().eq("config_id", configId);
+        const { error } = await (supabase.from("google_forms_config") as any).delete().eq("id", configId);
+        if (error) throw error;
       }
-      const { error } = await (supabase.from("google_forms_config") as any).delete().eq("cnpj", cnpj);
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["google-forms-config"] });
