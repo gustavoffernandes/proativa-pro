@@ -7,12 +7,15 @@ import { toast } from "@/hooks/use-toast";
 
 interface CompanyEntry {
   id: string;
+  key: string;
   cnpj: string;
   company_name: string;
+  address_city: string;
   sector: string;
   employee_count: number | null;
   form_count: number;
   sectors: CompanySector[];
+  has_branches: boolean;
 }
 
 interface CompanySector {
