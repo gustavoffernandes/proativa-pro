@@ -70,19 +70,25 @@ export function useSurveyData() {
   const isLoading = loadingConfigs || loadingResponses;
 
   const cnpjToConfigIds = new Map<string, string[]>();
-  const cnpjToCompanyInfo = new Map<string, { name: string; sector: string; employees: number | null; cnpj: string }>();
+  const cnpjToCompanyInfo = new Map<string, { name: string; sector: string; employees: number | null; cnpj: string; city: string }>();
 
   const formConfigs: FormConfig[] = [];
 
+  const normalizeCity = (v: any) => (v || "").toString().trim().toLowerCase();
+  const branchKey = (c: any) => c.cnpj ? `${c.cnpj}__${normalizeCity(c.address_city)}` : c.id;
+
   configs.forEach((c: any) => {
-    const key = c.cnpj || c.id;
+    const key = branchKey(c);
+    const cityLabel = (c.address_city || "").toString().trim();
+    const baseName = c.company_name || "Empresa sem nome";
     if (!cnpjToConfigIds.has(key)) {
       cnpjToConfigIds.set(key, []);
       cnpjToCompanyInfo.set(key, {
-        name: c.company_name || "Empresa sem nome",
+        name: cityLabel ? `${baseName} — ${cityLabel}` : baseName,
         sector: c.sector ? c.sector.charAt(0).toUpperCase() + c.sector.slice(1).toLowerCase() : "Não informado",
         employees: c.employee_count || null,
         cnpj: c.cnpj || "",
+        city: cityLabel,
       });
     }
     cnpjToConfigIds.get(key)!.push(c.id);
