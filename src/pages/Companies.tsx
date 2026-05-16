@@ -397,6 +397,7 @@ export default function Companies() {
                   <label className="text-xs font-medium text-foreground">CNPJ *</label>
                   <input value={formData.cnpj} onChange={e => setFormData({ ...formData, cnpj: formatCNPJ(e.target.value) })}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" placeholder="00.000.000/0000-00" maxLength={18} />
+                  <p className="text-[10px] text-muted-foreground">Para cadastrar uma filial com o mesmo CNPJ, informe uma cidade diferente no endereço.</p>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-foreground">Setor de Atuação</label>
