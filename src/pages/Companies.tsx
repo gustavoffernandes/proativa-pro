@@ -240,8 +240,8 @@ export default function Companies() {
   };
 
   const startEditCompany = (company: CompanyEntry) => {
-    const cfg = configs.find((c: any) => c.cnpj === company.cnpj && c.spreadsheet_id === "__placeholder__") as any;
-    setEditingCnpj(company.cnpj);
+    const cfg = configs.find((c: any) => c.cnpj === company.cnpj && normalizeCity(c.address_city) === normalizeCity(company.address_city) && c.spreadsheet_id === "__placeholder__") as any;
+    setEditingKey(company.key);
     setEditData({
       name: company.company_name,
       cnpj: formatCNPJ(company.cnpj),
@@ -484,9 +484,9 @@ export default function Companies() {
         ) : (
           <div className="space-y-3">
             {companies.map(company => (
-              <div key={company.cnpj} className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <div key={company.key} className="rounded-xl border border-border bg-card p-5 shadow-card">
                 <div className="flex flex-col gap-3">
-                  {editingCnpj === company.cnpj ? (
+                  {editingKey === company.key ? (
                     <div className="space-y-4">
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Dados Básicos</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -560,11 +560,11 @@ export default function Companies() {
                       {renderSectorEditor(editSectors, setEditSectors)}
 
                       <div className="flex items-center gap-2 pt-2">
-                        <button onClick={() => updateCompany.mutate({ cnpj: company.cnpj, data: editData, sectors: editSectors })}
+                        <button onClick={() => updateCompany.mutate({ cnpj: company.cnpj, city: company.address_city, data: editData, sectors: editSectors })}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">
                           <Check className="h-3 w-3" /> Salvar
                         </button>
-                        <button onClick={() => setEditingCnpj(null)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-colors">
+                        <button onClick={() => setEditingKey(null)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-colors">
                           <X className="h-3 w-3" /> Cancelar
                         </button>
                       </div>
@@ -601,7 +601,7 @@ export default function Companies() {
                           className="rounded-lg border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Editar empresa">
                           <Edit2 className="h-4 w-4" />
                         </button>
-                        <button onClick={() => { if (confirm(`Remover empresa "${company.company_name}" e todos os formulários vinculados?`)) deleteCompany.mutate(company.cnpj); }}
+                        <button onClick={() => { const label = company.company_name + (company.address_city ? ` — ${company.address_city}` : ""); if (confirm(`Remover empresa "${label}" e todos os formulários vinculados?`)) deleteCompany.mutate({ cnpj: company.cnpj, city: company.address_city }); }}
                           className="rounded-lg border border-destructive/30 p-2 text-destructive hover:bg-destructive/10 transition-colors" title="Excluir empresa">
                           <Trash2 className="h-4 w-4" />
                         </button>
