@@ -55,7 +55,7 @@ export default function Companies() {
     address_street: "", address_city: "", address_state: "", address_zip: "",
   });
   const [formSectors, setFormSectors] = useState<CompanySector[]>([]);
-  const [editingCnpj, setEditingCnpj] = useState<string | null>(null);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editData, setEditData] = useState({
     name: "", cnpj: "", sector: "", employee_count: "",
     contact_name: "", contact_email: "", contact_phone: "",
@@ -76,17 +76,23 @@ export default function Companies() {
     },
   });
 
+  const normalizeCity = (v: any) => (v || "").toString().trim().toLowerCase();
+  const branchKey = (cnpj: string, city: any) => `${cnpj}__${normalizeCity(city)}`;
+
   const companies: CompanyEntry[] = [];
-  const cnpjMap = new Map<string, { id: string; name: string; sector: string; employee_count: number | null; count: number; sectors: CompanySector[]; priority: 0 | 1 }>();
+  const branchMap = new Map<string, { id: string; cnpj: string; city: string; name: string; sector: string; employee_count: number | null; count: number; sectors: CompanySector[]; priority: 0 | 1 }>();
+  const cnpjCounts = new Map<string, number>();
 
   configs.forEach((c: any) => {
     const cnpj = c.cnpj || "";
     if (!cnpj) return;
+    const city = (c.address_city || "").toString().trim();
+    const key = branchKey(cnpj, city);
     const isPlaceholder = c.spreadsheet_id === "__placeholder__";
     const priority: 0 | 1 = isPlaceholder ? 0 : 1;
     const parsedSectors: CompanySector[] = Array.isArray(c.sectors) ? c.sectors : [];
-    if (cnpjMap.has(cnpj)) {
-      const current = cnpjMap.get(cnpj)!;
+    if (branchMap.has(key)) {
+      const current = branchMap.get(key)!;
       if (!isPlaceholder) current.count++;
       if (priority > current.priority || (isPlaceholder && current.priority === 0)) {
         current.name = c.company_name || current.name;
@@ -96,11 +102,18 @@ export default function Companies() {
         if (parsedSectors.length > 0 || isPlaceholder) current.sectors = parsedSectors;
       }
     } else {
-      cnpjMap.set(cnpj, { id: c.id, name: c.company_name, sector: c.sector || "", employee_count: c.employee_count || null, count: isPlaceholder ? 0 : 1, priority, sectors: parsedSectors });
+      branchMap.set(key, { id: c.id, cnpj, city, name: c.company_name, sector: c.sector || "", employee_count: c.employee_count || null, count: isPlaceholder ? 0 : 1, priority, sectors: parsedSectors });
     }
   });
-  cnpjMap.forEach((val, cnpj) => {
-    companies.push({ id: val.id, cnpj, company_name: val.name, sector: val.sector, employee_count: val.employee_count, form_count: val.count, sectors: val.sectors });
+  branchMap.forEach(val => {
+    cnpjCounts.set(val.cnpj, (cnpjCounts.get(val.cnpj) || 0) + 1);
+  });
+  branchMap.forEach((val, key) => {
+    companies.push({
+      id: val.id, key, cnpj: val.cnpj, company_name: val.name, address_city: val.city,
+      sector: val.sector, employee_count: val.employee_count, form_count: val.count,
+      sectors: val.sectors, has_branches: (cnpjCounts.get(val.cnpj) || 0) > 1,
+    });
   });
 
   const addCompany = useMutation({
