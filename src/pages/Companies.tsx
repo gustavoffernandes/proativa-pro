@@ -572,8 +572,13 @@ export default function Companies() {
                   ) : (
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-sm font-semibold text-card-foreground">{company.company_name}</h3>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h3 className="text-sm font-semibold text-card-foreground">
+                            {company.company_name}{company.address_city ? ` — ${company.address_city}` : ""}
+                          </h3>
+                          {company.has_branches && (
+                            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary uppercase tracking-wider">Filial</span>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground">CNPJ: {formatCNPJ(company.cnpj)}</p>
                         {company.sector && <p className="text-xs text-muted-foreground">Setor: {company.sector}</p>}
