@@ -63,9 +63,18 @@ export default function Forms() {
   });
 
   const configs = allConfigs.filter(c => c.spreadsheet_id !== "__placeholder__");
-  const companiesMap = new Map<string, string>();
-  allConfigs.forEach(c => { if (c.cnpj && !companiesMap.has(c.cnpj)) companiesMap.set(c.cnpj, c.company_name); });
-  const registeredCompanies = Array.from(companiesMap.entries()).map(([cnpj, name]) => ({ cnpj, name }));
+  const normalizeCity = (v: any) => (v || "").toString().trim().toLowerCase();
+  const placeholderConfigs = allConfigs.filter((c: any) => c.spreadsheet_id === "__placeholder__");
+  const registeredCompanies = placeholderConfigs.map((c: any) => {
+    const city = (c.address_city || "").toString().trim();
+    return {
+      id: c.id,
+      cnpj: c.cnpj || "",
+      name: c.company_name || "Empresa sem nome",
+      city,
+      label: city ? `${c.company_name} — ${city}` : c.company_name,
+    };
+  }).sort((a, b) => a.label.localeCompare(b.label));
 
   const { data: responseCounts = {} } = useQuery({
     queryKey: ["form-response-counts"],
@@ -93,18 +102,18 @@ export default function Forms() {
     mutationFn: async (data: typeof formData) => {
       if (!data.company_cnpj) throw new Error("Selecione uma empresa");
       if (!data.form_title) throw new Error("Título é obrigatório");
-      const companyName = registeredCompanies.find(c => c.cnpj === data.company_cnpj)?.name || "";
-
-      // Find sectors from the company's placeholder config
-      const companyPlaceholder = allConfigs.find(c => c.cnpj === data.company_cnpj && c.spreadsheet_id === "__placeholder__");
-      const companySectors = companyPlaceholder && Array.isArray(companyPlaceholder.sectors) ? companyPlaceholder.sectors : [];
+      const branch = registeredCompanies.find(c => c.id === data.company_cnpj);
+      if (!branch) throw new Error("Empresa/filial não encontrada");
+      const placeholder = placeholderConfigs.find((c: any) => c.id === branch.id) as any;
+      const companySectors = placeholder && Array.isArray(placeholder.sectors) ? placeholder.sectors : [];
 
       if (data.require_password && !data.survey_password.trim()) {
         throw new Error("Defina uma senha para acesso ao formulário.");
       }
       const payload: any = {
-        company_name: companyName,
-        cnpj: data.company_cnpj,
+        company_name: branch.name,
+        cnpj: branch.cnpj,
+        address_city: branch.city || null,
         form_title: data.form_title,
         spreadsheet_id: "__internal__",
         sheet_name: "internal",
@@ -164,7 +173,9 @@ export default function Forms() {
 
   const handleDownloadPDF = (config: FormConfig) => {
     try {
-      const companyKey = config.cnpj || config.id;
+      const cfgAny = config as any;
+      const cityNorm = normalizeCity(cfgAny.address_city);
+      const companyKey = config.cnpj ? `${config.cnpj}__${cityNorm}` : config.id;
       const company = surveyData.companies.find(c => c.id === companyKey);
       if (!company) { toast({ title: "Nenhum dado disponível para gerar PDF", variant: "destructive" }); return; }
       
@@ -192,8 +203,13 @@ export default function Forms() {
 
   const startEdit = (config: FormConfig) => {
     const cfg = config as any;
+    const cnpj = config.cnpj || "";
+    const city = (cfg.address_city || "").toString().trim();
+    const cityNorm = normalizeCity(city);
+    let branch = registeredCompanies.find(c => c.cnpj === cnpj && normalizeCity(c.city) === cityNorm);
+    if (!branch) branch = registeredCompanies.find(c => c.cnpj === cnpj);
     setFormData({
-      company_cnpj: config.cnpj || "",
+      company_cnpj: branch?.id || "",
       form_title: cfg.form_title || config.company_name,
       description: cfg.description || "",
       instructions: cfg.instructions || "Esta pesquisa é anônima e confidencial. Suas respostas serão utilizadas para melhorar o ambiente de trabalho. Por favor, responda com sinceridade.",
@@ -249,7 +265,7 @@ export default function Forms() {
                   <select value={formData.company_cnpj} onChange={e => setFormData({ ...formData, company_cnpj: e.target.value })}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition">
                     <option value="">Selecione uma empresa...</option>
-                    {registeredCompanies.map(c => <option key={c.cnpj} value={c.cnpj}>{c.name}</option>)}
+                    {registeredCompanies.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1">
@@ -333,8 +349,8 @@ export default function Forms() {
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link da Pesquisa</h4>
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border border-border">
                   <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-xs text-foreground truncate flex-1">{generateSurveyLink(editingId, registeredCompanies.find(c => c.cnpj === formData.company_cnpj)?.name)}</span>
-                  <button onClick={() => copyLink(editingId, registeredCompanies.find(c => c.cnpj === formData.company_cnpj)?.name)} className="flex items-center gap-1 px-3 py-1 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors shrink-0">
+                  <span className="text-xs text-foreground truncate flex-1">{generateSurveyLink(editingId, registeredCompanies.find(c => c.id === formData.company_cnpj)?.name)}</span>
+                  <button onClick={() => copyLink(editingId, registeredCompanies.find(c => c.id === formData.company_cnpj)?.name)} className="flex items-center gap-1 px-3 py-1 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors shrink-0">
                     <Copy className="h-3 w-3" /> Copiar Link
                   </button>
                 </div>
@@ -380,7 +396,7 @@ export default function Forms() {
                     return (
                       <tr key={config.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-3 font-medium text-foreground">{(config as any).form_title || config.company_name}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{config.company_name}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{config.company_name}{(config as any).address_city ? ` — ${(config as any).address_city}` : ""}</td>
                         <td className="px-4 py-3 text-center text-xs text-muted-foreground">{new Date(config.created_at).toLocaleDateString("pt-BR")}</td>
                         <td className="px-4 py-3 text-center font-medium text-foreground">{count}</td>
                         <td className="px-4 py-3 text-center">
@@ -414,7 +430,7 @@ export default function Forms() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <h3 className="text-sm font-semibold text-card-foreground truncate">{(config as any).form_title || config.company_name}</h3>
-                        <p className="text-xs text-muted-foreground">{config.company_name}</p>
+                        <p className="text-xs text-muted-foreground">{config.company_name}{(config as any).address_city ? ` — ${(config as any).address_city}` : ""}</p>
                       </div>
                       <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold shrink-0", status.bg, status.color)}>
                         {status.label}

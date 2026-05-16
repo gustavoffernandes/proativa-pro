@@ -7,12 +7,15 @@ import { toast } from "@/hooks/use-toast";
 
 interface CompanyEntry {
   id: string;
+  key: string;
   cnpj: string;
   company_name: string;
+  address_city: string;
   sector: string;
   employee_count: number | null;
   form_count: number;
   sectors: CompanySector[];
+  has_branches: boolean;
 }
 
 interface CompanySector {
@@ -52,7 +55,7 @@ export default function Companies() {
     address_street: "", address_city: "", address_state: "", address_zip: "",
   });
   const [formSectors, setFormSectors] = useState<CompanySector[]>([]);
-  const [editingCnpj, setEditingCnpj] = useState<string | null>(null);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editData, setEditData] = useState({
     name: "", cnpj: "", sector: "", employee_count: "",
     contact_name: "", contact_email: "", contact_phone: "",
@@ -73,17 +76,23 @@ export default function Companies() {
     },
   });
 
+  const normalizeCity = (v: any) => (v || "").toString().trim().toLowerCase();
+  const branchKey = (cnpj: string, city: any) => `${cnpj}__${normalizeCity(city)}`;
+
   const companies: CompanyEntry[] = [];
-  const cnpjMap = new Map<string, { id: string; name: string; sector: string; employee_count: number | null; count: number; sectors: CompanySector[]; priority: 0 | 1 }>();
+  const branchMap = new Map<string, { id: string; cnpj: string; city: string; name: string; sector: string; employee_count: number | null; count: number; sectors: CompanySector[]; priority: 0 | 1 }>();
+  const cnpjCounts = new Map<string, number>();
 
   configs.forEach((c: any) => {
     const cnpj = c.cnpj || "";
     if (!cnpj) return;
+    const city = (c.address_city || "").toString().trim();
+    const key = branchKey(cnpj, city);
     const isPlaceholder = c.spreadsheet_id === "__placeholder__";
     const priority: 0 | 1 = isPlaceholder ? 0 : 1;
     const parsedSectors: CompanySector[] = Array.isArray(c.sectors) ? c.sectors : [];
-    if (cnpjMap.has(cnpj)) {
-      const current = cnpjMap.get(cnpj)!;
+    if (branchMap.has(key)) {
+      const current = branchMap.get(key)!;
       if (!isPlaceholder) current.count++;
       if (priority > current.priority || (isPlaceholder && current.priority === 0)) {
         current.name = c.company_name || current.name;
@@ -93,19 +102,31 @@ export default function Companies() {
         if (parsedSectors.length > 0 || isPlaceholder) current.sectors = parsedSectors;
       }
     } else {
-      cnpjMap.set(cnpj, { id: c.id, name: c.company_name, sector: c.sector || "", employee_count: c.employee_count || null, count: isPlaceholder ? 0 : 1, priority, sectors: parsedSectors });
+      branchMap.set(key, { id: c.id, cnpj, city, name: c.company_name, sector: c.sector || "", employee_count: c.employee_count || null, count: isPlaceholder ? 0 : 1, priority, sectors: parsedSectors });
     }
   });
-  cnpjMap.forEach((val, cnpj) => {
-    companies.push({ id: val.id, cnpj, company_name: val.name, sector: val.sector, employee_count: val.employee_count, form_count: val.count, sectors: val.sectors });
+  branchMap.forEach(val => {
+    cnpjCounts.set(val.cnpj, (cnpjCounts.get(val.cnpj) || 0) + 1);
+  });
+  branchMap.forEach((val, key) => {
+    companies.push({
+      id: val.id, key, cnpj: val.cnpj, company_name: val.name, address_city: val.city,
+      sector: val.sector, employee_count: val.employee_count, form_count: val.count,
+      sectors: val.sectors, has_branches: (cnpjCounts.get(val.cnpj) || 0) > 1,
+    });
   });
 
   const addCompany = useMutation({
     mutationFn: async (data: { formData: typeof formData; sectors: CompanySector[] }) => {
       const cnpjDigits = cleanCNPJ(data.formData.cnpj);
       if (cnpjDigits.length !== 14) throw new Error("CNPJ deve ter 14 dígitos");
-      const existing = configs.find((c: any) => c.cnpj === cnpjDigits);
-      if (existing) throw new Error("Já existe uma empresa cadastrada com este CNPJ");
+      const cityNorm = normalizeCity(data.formData.address_city);
+      const existing = configs.find((c: any) => c.cnpj === cnpjDigits && normalizeCity(c.address_city) === cityNorm);
+      if (existing) {
+        throw new Error(cityNorm
+          ? `Já existe uma filial cadastrada com este CNPJ na cidade "${data.formData.address_city}"`
+          : "Já existe uma empresa cadastrada com este CNPJ. Para cadastrar uma filial, informe a cidade.");
+      }
       const { error } = await supabase.from("google_forms_config").insert([{
         company_name: data.formData.company_name, cnpj: cnpjDigits,
         spreadsheet_id: "__placeholder__", sheet_name: "Form Responses 1", is_active: false,
@@ -134,14 +155,15 @@ export default function Companies() {
   });
 
   const updateCompany = useMutation({
-    mutationFn: async ({ cnpj, data, sectors }: { cnpj: string; data: typeof editData; sectors: CompanySector[] }) => {
+    mutationFn: async ({ cnpj, city, data, sectors }: { cnpj: string; city: string; data: typeof editData; sectors: CompanySector[] }) => {
       const normalizedName = data.name.trim();
       if (!normalizedName) throw new Error("Razão Social é obrigatória");
       const newCnpjDigits = cleanCNPJ(data.cnpj);
       if (newCnpjDigits.length !== 14) throw new Error("CNPJ deve ter 14 dígitos");
-      if (newCnpjDigits !== cnpj) {
-        const exists = configs.find((c: any) => c.cnpj === newCnpjDigits);
-        if (exists) throw new Error("Já existe uma empresa cadastrada com este CNPJ");
+      const newCityNorm = normalizeCity(data.address_city);
+      if (newCnpjDigits !== cnpj || newCityNorm !== normalizeCity(city)) {
+        const exists = configs.find((c: any) => c.cnpj === newCnpjDigits && normalizeCity(c.address_city) === newCityNorm);
+        if (exists) throw new Error("Já existe uma empresa/filial cadastrada com este CNPJ e cidade");
       }
       const parsedEmployeeCount = data.employee_count ? Number(data.employee_count) : null;
       const updatePayload: any = {
@@ -158,27 +180,31 @@ export default function Companies() {
         address_state: data.address_state || null,
         address_zip: data.address_zip || null,
       };
-      const { error } = await (supabase.from("google_forms_config") as any).update(updatePayload).eq("cnpj", cnpj);
-      if (error) throw error;
+      const branchConfigIds = configs.filter((c: any) => c.cnpj === cnpj && normalizeCity(c.address_city) === normalizeCity(city)).map((c: any) => c.id);
+      for (const cid of branchConfigIds) {
+        const { error } = await (supabase.from("google_forms_config") as any).update(updatePayload).eq("id", cid);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["google-forms-config"] });
       queryClient.invalidateQueries({ queryKey: ["google-forms-config-all"] });
-      setEditingCnpj(null);
+      setEditingKey(null);
       toast({ title: "Empresa atualizada!" });
     },
     onError: (e: Error) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
   const deleteCompany = useMutation({
-    mutationFn: async (cnpj: string) => {
-      const configIds = configs.filter((c: any) => c.cnpj === cnpj).map((c: any) => c.id);
+    mutationFn: async ({ cnpj, city }: { cnpj: string; city: string }) => {
+      const cityNorm = normalizeCity(city);
+      const configIds = configs.filter((c: any) => c.cnpj === cnpj && normalizeCity(c.address_city) === cityNorm).map((c: any) => c.id);
       for (const configId of configIds) {
         await (supabase.from("user_roles") as any).delete().eq("company_id", configId);
         await supabase.from("survey_responses").delete().eq("config_id", configId);
+        const { error } = await (supabase.from("google_forms_config") as any).delete().eq("id", configId);
+        if (error) throw error;
       }
-      const { error } = await (supabase.from("google_forms_config") as any).delete().eq("cnpj", cnpj);
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["google-forms-config"] });
@@ -214,8 +240,8 @@ export default function Companies() {
   };
 
   const startEditCompany = (company: CompanyEntry) => {
-    const cfg = configs.find((c: any) => c.cnpj === company.cnpj && c.spreadsheet_id === "__placeholder__") as any;
-    setEditingCnpj(company.cnpj);
+    const cfg = configs.find((c: any) => c.cnpj === company.cnpj && normalizeCity(c.address_city) === normalizeCity(company.address_city) && c.spreadsheet_id === "__placeholder__") as any;
+    setEditingKey(company.key);
     setEditData({
       name: company.company_name,
       cnpj: formatCNPJ(company.cnpj),
@@ -371,6 +397,7 @@ export default function Companies() {
                   <label className="text-xs font-medium text-foreground">CNPJ *</label>
                   <input value={formData.cnpj} onChange={e => setFormData({ ...formData, cnpj: formatCNPJ(e.target.value) })}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition" placeholder="00.000.000/0000-00" maxLength={18} />
+                  <p className="text-[10px] text-muted-foreground">Para cadastrar uma filial com o mesmo CNPJ, informe uma cidade diferente no endereço.</p>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-foreground">Setor de Atuação</label>
@@ -458,9 +485,9 @@ export default function Companies() {
         ) : (
           <div className="space-y-3">
             {companies.map(company => (
-              <div key={company.cnpj} className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <div key={company.key} className="rounded-xl border border-border bg-card p-5 shadow-card">
                 <div className="flex flex-col gap-3">
-                  {editingCnpj === company.cnpj ? (
+                  {editingKey === company.key ? (
                     <div className="space-y-4">
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Dados Básicos</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -534,11 +561,11 @@ export default function Companies() {
                       {renderSectorEditor(editSectors, setEditSectors)}
 
                       <div className="flex items-center gap-2 pt-2">
-                        <button onClick={() => updateCompany.mutate({ cnpj: company.cnpj, data: editData, sectors: editSectors })}
+                        <button onClick={() => updateCompany.mutate({ cnpj: company.cnpj, city: company.address_city, data: editData, sectors: editSectors })}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">
                           <Check className="h-3 w-3" /> Salvar
                         </button>
-                        <button onClick={() => setEditingCnpj(null)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-colors">
+                        <button onClick={() => setEditingKey(null)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-colors">
                           <X className="h-3 w-3" /> Cancelar
                         </button>
                       </div>
@@ -546,8 +573,13 @@ export default function Companies() {
                   ) : (
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-sm font-semibold text-card-foreground">{company.company_name}</h3>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h3 className="text-sm font-semibold text-card-foreground">
+                            {company.company_name}{company.address_city ? ` — ${company.address_city}` : ""}
+                          </h3>
+                          {company.has_branches && (
+                            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary uppercase tracking-wider">Filial</span>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground">CNPJ: {formatCNPJ(company.cnpj)}</p>
                         {company.sector && <p className="text-xs text-muted-foreground">Setor: {company.sector}</p>}
@@ -575,7 +607,7 @@ export default function Companies() {
                           className="rounded-lg border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Editar empresa">
                           <Edit2 className="h-4 w-4" />
                         </button>
-                        <button onClick={() => { if (confirm(`Remover empresa "${company.company_name}" e todos os formulários vinculados?`)) deleteCompany.mutate(company.cnpj); }}
+                        <button onClick={() => { const label = company.company_name + (company.address_city ? ` — ${company.address_city}` : ""); if (confirm(`Remover empresa "${label}" e todos os formulários vinculados?`)) deleteCompany.mutate({ cnpj: company.cnpj, city: company.address_city }); }}
                           className="rounded-lg border border-destructive/30 p-2 text-destructive hover:bg-destructive/10 transition-colors" title="Excluir empresa">
                           <Trash2 className="h-4 w-4" />
                         </button>
