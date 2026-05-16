@@ -201,8 +201,13 @@ export default function Forms() {
 
   const startEdit = (config: FormConfig) => {
     const cfg = config as any;
+    const cnpj = config.cnpj || "";
+    const city = (cfg.address_city || "").toString().trim();
+    const cityNorm = normalizeCity(city);
+    let branch = registeredCompanies.find(c => c.cnpj === cnpj && normalizeCity(c.city) === cityNorm);
+    if (!branch) branch = registeredCompanies.find(c => c.cnpj === cnpj);
     setFormData({
-      company_cnpj: config.cnpj || "",
+      company_cnpj: branch?.id || "",
       form_title: cfg.form_title || config.company_name,
       description: cfg.description || "",
       instructions: cfg.instructions || "Esta pesquisa é anônima e confidencial. Suas respostas serão utilizadas para melhorar o ambiente de trabalho. Por favor, responda com sinceridade.",
@@ -258,7 +263,7 @@ export default function Forms() {
                   <select value={formData.company_cnpj} onChange={e => setFormData({ ...formData, company_cnpj: e.target.value })}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition">
                     <option value="">Selecione uma empresa...</option>
-                    {registeredCompanies.map(c => <option key={c.cnpj} value={c.cnpj}>{c.name}</option>)}
+                    {registeredCompanies.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1">
@@ -342,8 +347,8 @@ export default function Forms() {
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link da Pesquisa</h4>
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border border-border">
                   <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-xs text-foreground truncate flex-1">{generateSurveyLink(editingId, registeredCompanies.find(c => c.cnpj === formData.company_cnpj)?.name)}</span>
-                  <button onClick={() => copyLink(editingId, registeredCompanies.find(c => c.cnpj === formData.company_cnpj)?.name)} className="flex items-center gap-1 px-3 py-1 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors shrink-0">
+                  <span className="text-xs text-foreground truncate flex-1">{generateSurveyLink(editingId, registeredCompanies.find(c => c.id === formData.company_cnpj)?.name)}</span>
+                  <button onClick={() => copyLink(editingId, registeredCompanies.find(c => c.id === formData.company_cnpj)?.name)} className="flex items-center gap-1 px-3 py-1 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors shrink-0">
                     <Copy className="h-3 w-3" /> Copiar Link
                   </button>
                 </div>
