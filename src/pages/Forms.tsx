@@ -396,7 +396,7 @@ export default function Forms() {
                     return (
                       <tr key={config.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-3 font-medium text-foreground">{(config as any).form_title || config.company_name}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{config.company_name}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{config.company_name}{(config as any).address_city ? ` — ${(config as any).address_city}` : ""}</td>
                         <td className="px-4 py-3 text-center text-xs text-muted-foreground">{new Date(config.created_at).toLocaleDateString("pt-BR")}</td>
                         <td className="px-4 py-3 text-center font-medium text-foreground">{count}</td>
                         <td className="px-4 py-3 text-center">
@@ -430,7 +430,7 @@ export default function Forms() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <h3 className="text-sm font-semibold text-card-foreground truncate">{(config as any).form_title || config.company_name}</h3>
-                        <p className="text-xs text-muted-foreground">{config.company_name}</p>
+                        <p className="text-xs text-muted-foreground">{config.company_name}{(config as any).address_city ? ` — ${(config as any).address_city}` : ""}</p>
                       </div>
                       <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold shrink-0", status.bg, status.color)}>
                         {status.label}
