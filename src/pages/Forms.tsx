@@ -173,7 +173,9 @@ export default function Forms() {
 
   const handleDownloadPDF = (config: FormConfig) => {
     try {
-      const companyKey = config.cnpj || config.id;
+      const cfgAny = config as any;
+      const cityNorm = normalizeCity(cfgAny.address_city);
+      const companyKey = config.cnpj ? `${config.cnpj}__${cityNorm}` : config.id;
       const company = surveyData.companies.find(c => c.id === companyKey);
       if (!company) { toast({ title: "Nenhum dado disponível para gerar PDF", variant: "destructive" }); return; }
       
